@@ -113,11 +113,16 @@ bool MotionController::ShouldRaiseWake() const {
 
 bool MotionController::ShouldShakeWake(uint16_t thresh) {
   /* Currently Polling at 10hz, If this ever goes faster scalar and EMA might need adjusting */
-  int32_t speed = std::abs(zHistory[0] - zHistory[histSize - 1] + (yHistory[0] - yHistory[histSize - 1]) / 2 +
-                           (xHistory[0] - xHistory[histSize - 1]) / 4) *
-                  100 / (time - lastTime);
-  // (.2 * speed) + ((1 - .2) * accumulatedSpeed);
-  accumulatedSpeed = speed / 5 + accumulatedSpeed * 4 / 5;
+  const int32_t displacement = std::abs(zHistory[0] - zHistory[histSize - 1] + (yHistory[0] - yHistory[histSize - 1]) / 2 +
+					(xHistory[0] - xHistory[histSize - 1]) / 4);
+  if (time > lastTime) {
+    int32_t speed = displacement * 100 / (time - lastTime);
+    accumulatedSpeed = speed / 5 + accumulatedSpeed * 4 / 5;
+  }
+  // LEM; the case time == lastTime is probably a simulator bug
+  else if (displacement > 0) {
+    accumulatedSpeed = std::numeric_limits<decltype(accumulatedSpeed)>::max();
+  }
 
   return accumulatedSpeed > thresh;
 }

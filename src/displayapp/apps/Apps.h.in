@@ -24,6 +24,7 @@ namespace Pinetime {
       HeartRate,
       Navigation,
       StopWatch,
+      AviationTimer,
       Metronome,
       Motion,
       Calculator,

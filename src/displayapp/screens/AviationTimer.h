@@ -55,7 +55,7 @@ namespace Pinetime {
     template <>
     struct AppTraits<Apps::AviationTimer> {
       static constexpr Apps app = Apps::AviationTimer;
-      static constexpr const char* icon = Screens::Symbols::stopWatch;
+      static constexpr const char* icon = Screens::Symbols::plane;
 
       static Screens::Screen* Create(AppControllers& controllers) {
         return new Screens::AviationTimer(*controllers.systemTask);

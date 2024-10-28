@@ -6,6 +6,14 @@
 using namespace Pinetime::Applications::Screens;
 
 namespace {
+  void flight_rules_event_handler(lv_obj_t* obj, lv_event_t event) {
+    auto* screen = static_cast<AviationTimer*>(obj->user_data);
+    if (event == LV_EVENT_CLICKED) {
+      screen->flightRulesBtnEventHandler();
+    }
+  }
+
+  // all the following should disappear
   TimeSeparated_t convertTicksToTimeSegments(const TickType_t timeElapsed) {
     // Centiseconds
     const int timeElapsedCentis = timeElapsed * 100 / configTICK_RATE_HZ;
@@ -35,20 +43,21 @@ namespace {
 }
 
 AviationTimer::AviationTimer(System::SystemTask& systemTask) : systemTask {systemTask} {
-  static constexpr uint8_t btnWidth = 115;
-  static constexpr uint8_t btnHeight = 80;
-  btnPlayPause = lv_btn_create(lv_scr_act(), nullptr);
-  btnPlayPause->user_data = this;
-  lv_obj_set_event_cb(btnPlayPause, play_pause_event_handler);
-  lv_obj_set_size(btnPlayPause, btnWidth, btnHeight);
-  lv_obj_align(btnPlayPause, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
-  txtPlayPause = lv_label_create(btnPlayPause, nullptr);
+  static constexpr uint8_t btnWidth = 76;
+  static constexpr uint8_t btnHeight = 50;
+  btnFlightRules = lv_btn_create(lv_scr_act(), nullptr);
+  btnFlightRules->user_data = this;
+  lv_obj_set_event_cb(btnFlightRules, flight_rules_event_handler);
+  lv_obj_set_size(btnFlightRules, btnWidth, btnHeight);
+  lv_obj_align(btnFlightRules, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
+  txtFlightRules = lv_label_create(btnFlightRules, nullptr);
+  lv_label_set_text_static(txtFlightRules, VFRLabelStr);
 
   btnStopLap = lv_btn_create(lv_scr_act(), nullptr);
   btnStopLap->user_data = this;
   lv_obj_set_event_cb(btnStopLap, stop_lap_event_handler);
   lv_obj_set_size(btnStopLap, btnWidth, btnHeight);
-  lv_obj_align(btnStopLap, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
+  lv_obj_align(btnStopLap, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
   txtStopLap = lv_label_create(btnStopLap, nullptr);
   lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
   lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
@@ -73,6 +82,7 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask) : systemTask {syste
   lv_obj_align(time, msecTime, LV_ALIGN_OUT_TOP_MID, 0, 0);
 
   SetInterfaceStopped();
+  StopIFR();
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 }
@@ -85,18 +95,14 @@ AviationTimer::~AviationTimer() {
 
 void AviationTimer::SetInterfacePaused() {
   lv_obj_set_style_local_bg_color(btnStopLap, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_RED);
-  lv_obj_set_style_local_bg_color(btnPlayPause, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::green);
-  lv_label_set_text_static(txtPlayPause, Symbols::play);
   lv_label_set_text_static(txtStopLap, Symbols::stop);
 }
 
 void AviationTimer::SetInterfaceRunning() {
   lv_obj_set_state(time, LV_STATE_DEFAULT);
   lv_obj_set_state(msecTime, LV_STATE_DEFAULT);
-  lv_obj_set_style_local_bg_color(btnPlayPause, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
   lv_obj_set_style_local_bg_color(btnStopLap, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
 
-  lv_label_set_text_static(txtPlayPause, Symbols::pause);
   lv_label_set_text_static(txtStopLap, Symbols::lapsFlag);
 
   lv_obj_set_state(btnStopLap, LV_STATE_DEFAULT);
@@ -106,7 +112,6 @@ void AviationTimer::SetInterfaceRunning() {
 void AviationTimer::SetInterfaceStopped() {
   lv_obj_set_state(time, LV_STATE_DISABLED);
   lv_obj_set_state(msecTime, LV_STATE_DISABLED);
-  lv_obj_set_style_local_bg_color(btnPlayPause, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::green);
 
   lv_label_set_text_static(time, "00:00");
   lv_label_set_text_static(msecTime, "00");
@@ -118,12 +123,24 @@ void AviationTimer::SetInterfaceStopped() {
   }
 
   lv_label_set_text_static(lapText, "");
-  lv_label_set_text_static(txtPlayPause, Symbols::play);
   lv_label_set_text_static(txtStopLap, Symbols::lapsFlag);
   lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
   lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
 }
 
+void AviationTimer::StartIFR() {
+  currentFlightRules = FlightRules::IFR;
+  IFRStartTime = xTaskGetTickCount();
+  lv_label_set_text_static(txtFlightRules, IFRLabelStr);
+}
+
+void AviationTimer::StopIFR() {
+  currentFlightRules = FlightRules::VFR;
+  previousIFRTime += xTaskGetTickCount() - IFRStartTime;
+  lv_label_set_text_static(txtFlightRules, VFRLabelStr);
+}
+
+// START from StopWatch, should go away
 void AviationTimer::Reset() {
   SetInterfaceStopped();
   currentState = States::Init;
@@ -147,6 +164,7 @@ void AviationTimer::Pause() {
   currentState = States::Halted;
   systemTask.PushMessage(Pinetime::System::Messages::EnableSleeping);
 }
+// END from StopWatch, should go away
 
 void AviationTimer::Refresh() {
   if (currentState == States::Running) {
@@ -179,6 +197,18 @@ void AviationTimer::Refresh() {
   }
 }
 
+void AviationTimer::flightRulesBtnEventHandler() {
+  switch (currentFlightRules) {
+  case FlightRules::VFR:
+    StartIFR();
+    break;
+  case FlightRules::IFR:
+    StopIFR();
+    break;
+  }
+}
+
+// BEGIN should be removed
 void AviationTimer::playPauseBtnEventHandler() {
   if (currentState == States::Init || currentState == States::Halted) {
     Start();
@@ -210,6 +240,7 @@ void AviationTimer::stopLapBtnEventHandler() {
     Reset();
   }
 }
+// END should be removed
 
 bool AviationTimer::OnButtonPushed() {
   if (currentState == States::Running) {

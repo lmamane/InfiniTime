@@ -22,11 +22,36 @@ namespace Pinetime {
         ~AviationTimer() override;
         void Refresh() override;
 
+	void flightRulesBtnEventHandler();
+	// BEGIN these are from StopWatch, should disappear
         void playPauseBtnEventHandler();
         void stopLapBtnEventHandler();
         bool OnButtonPushed() override;
+	// END   these are from StopWatch, should disappear
+
+      protected:
+	enum class FlightState { off, idleAfterOn, blocksOff, departed, landed,  blocksOn, idleBeforeOff};
+	FlightState currentFlightState = FlightState::off;
+	// TOOD: make these configurable
+	// TODO: maybe not an int, but a TimeSeparated_t?
+	static constexpr int idleAfterOnDuration   = 60;
+	static constexpr int idleBeforeOffDuration = 120;
+	// END TODO
+	enum class FlightRules { VFR, IFR };
+	FlightRules currentFlightRules = FlightRules::VFR;
+	static constexpr const char * const VFRLabelStr = "VFR";
+	static constexpr const char * const IFRLabelStr = "IFR";
+	lv_obj_t *btnFlightState, *btnFlightRules, *txtFlightRules;
+
+	// TODO: choose between TickType_t or TimeSeparated_t
+	TickType_t previousIFRTime = 0; //= {0, 0, 0, 0};
+	TickType_t IFRStartTime;
+
+	void StartIFR();
+	void StopIFR();
 
       private:
+	// BEGIN these are from StopWatch, should disappear
         void SetInterfacePaused();
         void SetInterfaceRunning();
         void SetInterfaceStopped();
@@ -44,9 +69,10 @@ namespace Pinetime {
         TickType_t laps[maxLapCount + 1];
         static constexpr int displayedLaps = 2;
         int lapsDone = 0;
-        lv_obj_t *time, *msecTime, *btnPlayPause, *btnStopLap, *txtPlayPause, *txtStopLap;
+        lv_obj_t *time, *msecTime, *btnStopLap, *txtStopLap;
         lv_obj_t* lapText;
         bool isHoursLabelUpdated = false;
+	// END    these are from StopWatch, should disappear
 
         lv_task_t* taskRefresh;
       };

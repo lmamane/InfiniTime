@@ -19,9 +19,11 @@ envisioned display;
  T/O:       date? h:mm
  Landed:    date? h:mm
  Block On:  date? h:mm
-+ when timer running (after startup / before shutdown)
+ + when timer running (after startup / before shutdown), the timer
+
 
 if wide enough, maybe (N = number of days later):
 
+ Date: yyyy-mm-dd
  Block: h:mm - h:mm+N
- Air:   h:mm - date? h:mm
+ Air:   h:mm - h:mm+N

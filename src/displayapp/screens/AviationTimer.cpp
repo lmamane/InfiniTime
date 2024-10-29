@@ -62,18 +62,18 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask) : systemTask {syste
   lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
   lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
 
-  lapText = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(lapText, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
-  lv_label_set_text_static(lapText, "\n");
-  lv_label_set_long_mode(lapText, LV_LABEL_LONG_BREAK);
-  lv_label_set_align(lapText, LV_LABEL_ALIGN_CENTER);
-  lv_obj_set_width(lapText, LV_HOR_RES_MAX);
-  lv_obj_align(lapText, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, -btnHeight);
+  txtIFRTime = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtIFRTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_text_static(txtIFRTime, "\n");
+  lv_label_set_long_mode(txtIFRTime, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtIFRTime, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtIFRTime, LV_HOR_RES_MAX);
+  lv_obj_align(txtIFRTime, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, -btnHeight);
 
   msecTime = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(msecTime, "00");
   lv_obj_set_style_local_text_color(msecTime, LV_LABEL_PART_MAIN, LV_STATE_DISABLED, Colors::lightGray);
-  lv_obj_align(msecTime, lapText, LV_ALIGN_OUT_TOP_MID, 0, 0);
+  lv_obj_align(msecTime, txtIFRTime, LV_ALIGN_OUT_TOP_MID, 0, 0);
 
   time = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_font(time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_76);
@@ -82,7 +82,6 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask) : systemTask {syste
   lv_obj_align(time, msecTime, LV_ALIGN_OUT_TOP_MID, 0, 0);
 
   SetInterfaceStopped();
-  StopIFR();
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 }
@@ -122,7 +121,6 @@ void AviationTimer::SetInterfaceStopped() {
     isHoursLabelUpdated = false;
   }
 
-  lv_label_set_text_static(lapText, "");
   lv_label_set_text_static(txtStopLap, Symbols::lapsFlag);
   lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
   lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
@@ -132,12 +130,17 @@ void AviationTimer::StartIFR() {
   currentFlightRules = FlightRules::IFR;
   IFRStartTime = xTaskGetTickCount();
   lv_label_set_text_static(txtFlightRules, IFRLabelStr);
+  // TODO actual h:m time
+  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, IFRStartTime, 0, previousIFRTime, 0);
 }
 
 void AviationTimer::StopIFR() {
   currentFlightRules = FlightRules::VFR;
-  previousIFRTime += xTaskGetTickCount() - IFRStartTime;
+  const TickType_t IFRStopTime = xTaskGetTickCount();
+  previousIFRTime += IFRStopTime - IFRStartTime;
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
+  // TODO actual h:m time
+  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, IFRStopTime, 0, previousIFRTime, 0);
 }
 
 // START from StopWatch, should go away
@@ -220,11 +223,9 @@ void AviationTimer::playPauseBtnEventHandler() {
 void AviationTimer::stopLapBtnEventHandler() {
   // If running, then this button is used to save laps
   if (currentState == States::Running) {
-    lv_label_set_text(lapText, "");
     lapsDone = std::min(lapsDone + 1, maxLapCount);
     for (int i = lapsDone - displayedLaps; i < lapsDone; i++) {
       if (i < 0) {
-        lv_label_ins_text(lapText, LV_LABEL_POS_LAST, "\n");
         continue;
       }
       TimeSeparated_t times = convertTicksToTimeSegments(laps[i]);
@@ -234,7 +235,6 @@ void AviationTimer::stopLapBtnEventHandler() {
       } else {
         snprintf(buffer, sizeof(buffer), "#%2d %2d:%02d:%02d.%02d\n", i + 1, times.hours, times.mins, times.secs, times.hundredths);
       }
-      lv_label_ins_text(lapText, LV_LABEL_POS_LAST, buffer);
     }
   } else if (currentState == States::Halted) {
     Reset();

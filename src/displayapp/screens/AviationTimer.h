@@ -45,8 +45,8 @@ namespace Pinetime {
 	lv_obj_t *btnFlightState, *btnFlightRules, *txtFlightRules;
 	lv_obj_t *txtBlockTime, *txtAirTime, *txtIFRTime;
 	// TODO actual h:m time
-	static constexpr const char * const IFRStartFmt = "IFR s%d:%02d d%d:%02d";
-	static constexpr const char * const IFREndFmt = "IFR e%d:%02d d%d:%02d";
+	static constexpr const char * const IFRStartFmt = "IFR since %02d:%02d";
+	static constexpr const char * const IFREndFmt = "IFR e%02d:%02d %dh%02dm%02ds";
 
 	// TODO: choose between TickType_t or TimeSeparated_t
 	TickType_t previousIFRTime = 0; //= {0, 0, 0, 0};

@@ -13,7 +13,7 @@ namespace {
     }
   }
 
-  // all the following should disappear
+  // TODO: share this with StopWatch, now is duplicate
   TimeSeparated_t convertTicksToTimeSegments(const TickType_t timeElapsed) {
     // Centiseconds
     const int timeElapsedCentis = timeElapsed * 100 / configTICK_RATE_HZ;
@@ -25,6 +25,7 @@ namespace {
     return TimeSeparated_t {hours, mins, secs, hundredths};
   }
 
+  // all the following should disappear
   void play_pause_event_handler(lv_obj_t* obj, lv_event_t event) {
     auto* stopWatch = static_cast<AviationTimer*>(obj->user_data);
     if (event == LV_EVENT_CLICKED) {
@@ -128,19 +129,22 @@ void AviationTimer::SetInterfaceStopped() {
 
 void AviationTimer::StartIFR() {
   currentFlightRules = FlightRules::IFR;
+  // TODO: IFRStartTime should be a clock time, not duration since watch started
   IFRStartTime = xTaskGetTickCount();
+  TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStartTime);
   lv_label_set_text_static(txtFlightRules, IFRLabelStr);
-  // TODO actual h:m time
-  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, IFRStartTime, 0, previousIFRTime, 0);
+  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, ISTS.hours, ISTS.mins);
 }
 
 void AviationTimer::StopIFR() {
   currentFlightRules = FlightRules::VFR;
   const TickType_t IFRStopTime = xTaskGetTickCount();
+  // TODO FIXME: do we need to handle wraparound of TickType_t?
   previousIFRTime += IFRStopTime - IFRStartTime;
+  TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStopTime);
+  TimeSeparated_t pITSep = convertTicksToTimeSegments(previousIFRTime);
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
-  // TODO actual h:m time
-  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, IFRStopTime, 0, previousIFRTime, 0);
+  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, ISTS.hours, ISTS.mins, pITSep.hours, pITSep.mins, pITSep.secs);
 }
 
 // START from StopWatch, should go away

@@ -4,11 +4,13 @@
 #include <lvgl/lvgl.h>
 
 #include <FreeRTOS.h>
+#include <chrono>
 #include "portmacro_cmsis.h"
 
 #include "systemtask/SystemTask.h"
 #include "displayapp/apps/Apps.h"
 #include "displayapp/Controllers.h"
+#include "components/datetime/DateTimeController.h"
 #include "Symbols.h"
 #include "StopWatch.h"
 
@@ -18,7 +20,8 @@ namespace Pinetime {
 
       class AviationTimer : public Screen {
       public:
-        explicit AviationTimer(System::SystemTask& systemTask);
+        explicit AviationTimer(System::SystemTask& systemTask,
+			       Controllers::DateTime& dateTimeController);
         ~AviationTimer() override;
         void Refresh() override;
 
@@ -49,11 +52,14 @@ namespace Pinetime {
 	static constexpr const char * const IFREndFmt = "IFR e%02d:%02d %dh%02dm%02ds";
 
 	// TODO: choose between TickType_t or TimeSeparated_t
-	TickType_t previousIFRTime = 0; //= {0, 0, 0, 0};
-	TickType_t IFRStartTime;
+	std::chrono::nanoseconds previousIFRTime = std::chrono::nanoseconds(0);
+	// TODO: does this need to be a Utility::DirtyValue<>??? What is that?
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStartTime;
 
 	void StartIFR();
 	void StopIFR();
+
+	Controllers::DateTime& dateTimeController;
 
       private:
 	// BEGIN these are from StopWatch, should disappear
@@ -89,7 +95,8 @@ namespace Pinetime {
       static constexpr const char* icon = Screens::Symbols::plane;
 
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::AviationTimer(*controllers.systemTask);
+        return new Screens::AviationTimer(*controllers.systemTask,
+					  controllers.dateTimeController);
       };
     };
   }

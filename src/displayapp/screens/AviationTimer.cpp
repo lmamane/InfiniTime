@@ -43,7 +43,9 @@ namespace {
   constexpr TickType_t blinkInterval = pdMS_TO_TICKS(1000);
 }
 
-AviationTimer::AviationTimer(System::SystemTask& systemTask) : systemTask {systemTask} {
+AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTime& dateTimeController)
+  : systemTask {systemTask}
+  ,  dateTimeController {dateTimeController} {
   static constexpr uint8_t btnWidth = 76;
   static constexpr uint8_t btnHeight = 50;
   btnFlightRules = lv_btn_create(lv_scr_act(), nullptr);
@@ -128,23 +130,26 @@ void AviationTimer::SetInterfaceStopped() {
 }
 
 void AviationTimer::StartIFR() {
+  using namespace std::chrono;
   currentFlightRules = FlightRules::IFR;
-  // TODO: IFRStartTime should be a clock time, not duration since watch started
-  IFRStartTime = xTaskGetTickCount();
-  TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStartTime);
+  IFRStartTime = dateTimeController.UTCDateTime();
+  const auto dp = floor<days>(IFRStartTime);
+  const hh_mm_ss time{IFRStartTime - dp};
+  //TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStartTime);
   lv_label_set_text_static(txtFlightRules, IFRLabelStr);
-  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, ISTS.hours, ISTS.mins);
+  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, time.hours(), time.minutes());
 }
 
 void AviationTimer::StopIFR() {
+  using namespace std::chrono;
   currentFlightRules = FlightRules::VFR;
-  const TickType_t IFRStopTime = xTaskGetTickCount();
-  // TODO FIXME: do we need to handle wraparound of TickType_t?
+  const auto IFRStopTime = dateTimeController.UTCDateTime();;
   previousIFRTime += IFRStopTime - IFRStartTime;
-  TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStopTime);
-  TimeSeparated_t pITSep = convertTicksToTimeSegments(previousIFRTime);
+  const auto dp = floor<days>(IFRStopTime);
+  const hh_mm_ss ISTS{IFRStopTime - dp};
+  const hh_mm_ss pITSep {duration_cast<seconds>(previousIFRTime)};
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
-  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, ISTS.hours, ISTS.mins, pITSep.hours, pITSep.mins, pITSep.secs);
+  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, ISTS.hours(), ISTS.minutes(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
 }
 
 // START from StopWatch, should go away

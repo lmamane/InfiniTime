@@ -67,7 +67,7 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
 
   txtIFRTime = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtIFRTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
-  lv_label_set_text_static(txtIFRTime, "\n");
+  lv_label_set_text_static(txtIFRTime, "");
   lv_label_set_long_mode(txtIFRTime, LV_LABEL_LONG_BREAK);
   lv_label_set_align(txtIFRTime, LV_LABEL_ALIGN_LEFT);
   lv_obj_set_width(txtIFRTime, LV_HOR_RES_MAX);

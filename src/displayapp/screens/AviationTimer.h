@@ -30,12 +30,13 @@ namespace Pinetime {
 	// END   these are from StopWatch, should disappear
 
       protected:
-	enum class FlightState { off, idleAfterOn, blocksOff, departed, landed,  blocksOn, idleBeforeOff};
+	enum class FlightState { off, idleAfterStartup, blocksOff, departed, landed,  blocksOn, idleBeforeShutdown};
 	FlightState currentFlightState = FlightState::off;
 	// TOOD: make these configurable
-	// TODO: maybe not an int, but a TimeSeparated_t?
-	static constexpr int idleAfterOnDuration   = 60;
-	static constexpr int idleBeforeOffDuration = 120;
+	// FIXME: at state changee, don't forget to test idle durations and if zero, skip state entirely
+	// TODO: need to check what the duration of "tick" in TickType_t is and adapt
+	static constexpr int idleAfterStartupDuration   = 60;
+	static constexpr int idleBeforeShutdownDuration = 120;
 	// END TODO
 	enum class FlightRules { VFR, IFR };
 	FlightRules currentFlightRules = FlightRules::VFR;

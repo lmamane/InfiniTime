@@ -151,20 +151,31 @@ void AviationTimer::SetInterfaceStopped() {
 }
 
 void AviationTimer::StartIFR() {
-  currentFlightRules = FlightRules::IFR;
-  IFRStartTime = dateTimeController.UTCDateTime();
-  lv_label_set_text_static(txtFlightRules, IFRLabelStr);
-  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, fmt_hhmmpd(BlocksOffTime, IFRStartTime).c_str());
+  StartIFR(dateTimeController.UTCDateTime());
 }
 
 void AviationTimer::StopIFR() {
+  StopIFR(dateTimeController.UTCDateTime());
+}
+
+void AviationTimer::StartIFR(const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start_time) {
+  currentFlightRules = FlightRules::IFR;
+  lv_label_set_text_static(txtFlightRules, IFRLabelStr);
+  if(currentFlightState >= FlightState::blocksOff) {
+    IFRStartTime = start_time;
+    lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, fmt_hhmmpd(BlocksOffTime, IFRStartTime).c_str());
+  }
+}
+
+void AviationTimer::StopIFR(const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStopTime) {
   currentFlightRules = FlightRules::VFR;
-  const auto IFRStopTime = dateTimeController.UTCDateTime();;
-  previousIFRTime += IFRStopTime - IFRStartTime;
-  const hh_mm_ss pITSep {duration_cast<seconds>(previousIFRTime)};
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
-  // TODO: make utility function out of hms
-  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, fmt_hhmmpd(BlocksOffTime, IFRStopTime).c_str(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
+  if(currentFlightState >= FlightState::blocksOff) {
+    previousIFRTime += IFRStopTime - IFRStartTime;
+    const hh_mm_ss pITSep {duration_cast<seconds>(previousIFRTime)};
+    // TODO: make utility function out of hms
+    lv_label_set_text_fmt(txtIFRTime, IFREndFmt, fmt_hhmmpd(BlocksOffTime, IFRStopTime).c_str(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
+  }
 }
 
 void AviationTimer::blocksOff() {
@@ -172,8 +183,11 @@ void AviationTimer::blocksOff() {
   using namespace std::chrono;
   currentFlightState = FlightState::blocksOff;
   BlocksOffTime = dateTimeController.UTCDateTime();
-  lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
   lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
+  lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
+  if (currentFlightRules == FlightRules::IFR) {
+    StartIFR(BlocksOffTime);
+  }
 }
 
 void AviationTimer::idleAfterStartup() {

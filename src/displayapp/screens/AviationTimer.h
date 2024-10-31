@@ -69,6 +69,9 @@ namespace Pinetime {
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOnTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStartTime;
 
+	void StartIFR(std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start_time);
+	void StopIFR(std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> stop_time);
+
 	void StartIFR();
 	void StopIFR();
 

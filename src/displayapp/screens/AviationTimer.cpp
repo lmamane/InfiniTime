@@ -6,6 +6,8 @@
 using namespace Pinetime::Applications::Screens;
 
 namespace {
+  using namespace std::chrono;
+
   void flight_rules_event_handler(lv_obj_t* obj, lv_event_t event) {
     auto* screen = static_cast<AviationTimer*>(obj->user_data);
     if (event == LV_EVENT_CLICKED) {
@@ -13,7 +15,24 @@ namespace {
     }
   }
 
+  void flight_state_event_handler(lv_obj_t* obj, lv_event_t event) {
+    auto* screen = static_cast<AviationTimer*>(obj->user_data);
+    if (event == LV_EVENT_CLICKED) {
+      screen->flightStateBtnEventHandler();
+    }
+  }
+
+  template <typename clock, typename t_precision, typename r_precision>
+  std::string fmt_hhmmpd(const time_point<clock, r_precision> ref,
+                         const time_point<clock, t_precision> tp) {
+    const auto ref_days = floor<days>(ref);
+    const auto tp_days = floor<days>(tp);
+    const hh_mm_ss time{tp - tp_days};
+    return std::format("{:%R}{:+d}", tp, (tp_days - ref_days).count());
+  }
+
   // TODO: share this with StopWatch, now is duplicate
+  // maybe not used anymore in the end...
   TimeSeparated_t convertTicksToTimeSegments(const TickType_t timeElapsed) {
     // Centiseconds
     const int timeElapsedCentis = timeElapsed * 100 / configTICK_RATE_HZ;
@@ -56,14 +75,13 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
   txtFlightRules = lv_label_create(btnFlightRules, nullptr);
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
 
-  btnStopLap = lv_btn_create(lv_scr_act(), nullptr);
-  btnStopLap->user_data = this;
-  lv_obj_set_event_cb(btnStopLap, stop_lap_event_handler);
-  lv_obj_set_size(btnStopLap, btnWidth, btnHeight);
-  lv_obj_align(btnStopLap, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
-  txtStopLap = lv_label_create(btnStopLap, nullptr);
-  lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
-  lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
+  btnFlightState = lv_btn_create(lv_scr_act(), nullptr);
+  btnFlightState->user_data = this;
+  lv_obj_set_event_cb(btnFlightState, flight_state_event_handler);
+  lv_obj_set_size(btnFlightState, 2*btnWidth, btnHeight);
+  lv_obj_align(btnFlightState, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
+  txtFlightState = lv_label_create(btnFlightState, nullptr);
+  lv_label_set_text_static(txtFlightState, offLabelStr);
 
   txtIFRTime = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtIFRTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
@@ -73,18 +91,21 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
   lv_obj_set_width(txtIFRTime, LV_HOR_RES_MAX);
   lv_obj_align(txtIFRTime, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, -btnHeight);
 
-  msecTime = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text_static(msecTime, "00");
-  lv_obj_set_style_local_text_color(msecTime, LV_LABEL_PART_MAIN, LV_STATE_DISABLED, Colors::lightGray);
-  lv_obj_align(msecTime, txtIFRTime, LV_ALIGN_OUT_TOP_MID, 0, 0);
+  txtStartDate = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtStartDate, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_text_static(txtStartDate, "");
+  lv_label_set_long_mode(txtStartDate, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtStartDate, LV_LABEL_ALIGN_CENTER);
+  lv_obj_set_width(txtStartDate, LV_HOR_RES_MAX);
+  lv_obj_align(txtStartDate, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 0, 0);
 
-  time = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_font(time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_76);
-  lv_label_set_text_static(time, "00:00");
-  lv_obj_set_style_local_text_color(time, LV_LABEL_PART_MAIN, LV_STATE_DISABLED, Colors::lightGray);
-  lv_obj_align(time, msecTime, LV_ALIGN_OUT_TOP_MID, 0, 0);
-
-  SetInterfaceStopped();
+  txtBlockTime = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtBlockTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_text_static(txtBlockTime, "");
+  lv_label_set_long_mode(txtBlockTime, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtBlockTime, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtBlockTime, LV_HOR_RES_MAX);
+  lv_obj_align(txtBlockTime, txtStartDate, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 }
@@ -130,26 +151,37 @@ void AviationTimer::SetInterfaceStopped() {
 }
 
 void AviationTimer::StartIFR() {
-  using namespace std::chrono;
   currentFlightRules = FlightRules::IFR;
   IFRStartTime = dateTimeController.UTCDateTime();
-  const auto dp = floor<days>(IFRStartTime);
-  const hh_mm_ss time{IFRStartTime - dp};
-  //TimeSeparated_t ISTS = convertTicksToTimeSegments(IFRStartTime);
   lv_label_set_text_static(txtFlightRules, IFRLabelStr);
-  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, time.hours(), time.minutes());
+  lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, fmt_hhmmpd(BlocksOffTime, IFRStartTime).c_str());
 }
 
 void AviationTimer::StopIFR() {
-  using namespace std::chrono;
   currentFlightRules = FlightRules::VFR;
   const auto IFRStopTime = dateTimeController.UTCDateTime();;
   previousIFRTime += IFRStopTime - IFRStartTime;
-  const auto dp = floor<days>(IFRStopTime);
-  const hh_mm_ss ISTS{IFRStopTime - dp};
   const hh_mm_ss pITSep {duration_cast<seconds>(previousIFRTime)};
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
-  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, ISTS.hours(), ISTS.minutes(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
+  // TODO: make utility function out of hms
+  lv_label_set_text_fmt(txtIFRTime, IFREndFmt, fmt_hhmmpd(BlocksOffTime, IFRStopTime).c_str(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
+}
+
+void AviationTimer::blocksOff() {
+  lv_label_set_text_static(txtFlightState, blocksOffLabelStr);
+  using namespace std::chrono;
+  currentFlightState = FlightState::blocksOff;
+  BlocksOffTime = dateTimeController.UTCDateTime();
+  const auto dp = floor<days>(BlocksOffTime);
+  const hh_mm_ss time{BlocksOffTime - dp};
+  lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
+  lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
+}
+
+void AviationTimer::idleAfterStartup() {
+  lv_label_set_text_static(txtFlightState, idleAfterStartupLabelStr);
+  currentFlightState = FlightState::idleAfterStartup;
+  // TODO
 }
 
 // START from StopWatch, should go away
@@ -220,6 +252,33 @@ void AviationTimer::flightRulesBtnEventHandler() {
   }
 }
 
+void AviationTimer::flightStateBtnEventHandler() {
+  using enum FlightState;
+  switch (currentFlightState) {
+  case off:
+    if (idleAfterStartupDuration > 0) {
+      AviationTimer::idleAfterStartup();
+    }
+    else {
+      AviationTimer::blocksOff();
+    }
+    break;
+  case idleAfterStartup:
+    AviationTimer::blocksOff();
+    break;
+  case blocksOff:
+    break;
+  case departed:
+    break;
+  case landed:
+    break;
+  case blocksOn:
+    break;
+  case idleBeforeShutdown:
+    break;
+  }
+}
+
 // BEGIN should be removed
 void AviationTimer::playPauseBtnEventHandler() {
   if (currentState == States::Init || currentState == States::Halted) {
@@ -249,7 +308,6 @@ void AviationTimer::stopLapBtnEventHandler() {
     Reset();
   }
 }
-// END should be removed
 
 bool AviationTimer::OnButtonPushed() {
   if (currentState == States::Running) {
@@ -258,3 +316,4 @@ bool AviationTimer::OnButtonPushed() {
   }
   return false;
 }
+// END should be removed

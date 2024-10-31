@@ -26,6 +26,7 @@ namespace Pinetime {
         void Refresh() override;
 
 	void flightRulesBtnEventHandler();
+	void flightStateBtnEventHandler();
 	// BEGIN these are from StopWatch, should disappear
         void playPauseBtnEventHandler();
         void stopLapBtnEventHandler();
@@ -34,6 +35,13 @@ namespace Pinetime {
 
       protected:
 	enum class FlightState { off, idleAfterStartup, blocksOff, departed, landed,  blocksOn, idleBeforeShutdown};
+	static constexpr const char * const offLabelStr = "off";
+	static constexpr const char * const idleAfterStartupLabelStr = "Startup";
+	static constexpr const char * const blocksOffLabelStr = "Blocks Off";
+	static constexpr const char * const departedLabelStr = "in air";
+	static constexpr const char * const landedLabelStr = "landed";
+	static constexpr const char * const blocksOnLabelStr = "Blocks On";
+	static constexpr const char * const idleBeforeShutdownLabelStr = "Shutdown";
 	FlightState currentFlightState = FlightState::off;
 	// TOOD: make these configurable
 	// FIXME: at state changee, don't forget to test idle durations and if zero, skip state entirely
@@ -45,19 +53,27 @@ namespace Pinetime {
 	FlightRules currentFlightRules = FlightRules::VFR;
 	static constexpr const char * const VFRLabelStr = "VFR";
 	static constexpr const char * const IFRLabelStr = "IFR";
-	lv_obj_t *btnFlightState, *btnFlightRules, *txtFlightRules;
-	lv_obj_t *txtBlockTime, *txtAirTime, *txtIFRTime;
-	// TODO actual h:m time
-	static constexpr const char * const IFRStartFmt = "IFR since %02d:%02d";
-	static constexpr const char * const IFREndFmt = "IFR e%02d:%02d %dh%02dm%02ds";
+	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
+	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtIFRTime;
+	static constexpr const char * const IFRStartFmt = "IFR since %s";
+	static constexpr const char * const IFREndFmt = "IFR e%s %dh%02dm%02d";
+	static constexpr const char * const FlightDateFmt = "%s";
+	static constexpr const char * const BlockTimeFmt = "B %s - %s";
 
 	// TODO: choose between TickType_t or TimeSeparated_t
 	std::chrono::nanoseconds previousIFRTime = std::chrono::nanoseconds(0);
 	// TODO: does this need to be a Utility::DirtyValue<>??? What is that?
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOffTime;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> DepartureTime;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> LandingTime;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOnTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStartTime;
 
 	void StartIFR();
 	void StopIFR();
+
+	void blocksOff();
+	void idleAfterStartup();
 
 	Controllers::DateTime& dateTimeController;
 

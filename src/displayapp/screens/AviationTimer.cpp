@@ -93,7 +93,6 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
 
   txtStartDate = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtStartDate, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
-  lv_label_set_text_static(txtStartDate, "");
   lv_label_set_long_mode(txtStartDate, LV_LABEL_LONG_BREAK);
   lv_label_set_align(txtStartDate, LV_LABEL_ALIGN_CENTER);
   lv_obj_set_width(txtStartDate, LV_HOR_RES_MAX);
@@ -101,11 +100,33 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
 
   txtBlockTime = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtBlockTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
-  lv_label_set_text_static(txtBlockTime, "");
   lv_label_set_long_mode(txtBlockTime, LV_LABEL_LONG_BREAK);
   lv_label_set_align(txtBlockTime, LV_LABEL_ALIGN_LEFT);
   lv_obj_set_width(txtBlockTime, LV_HOR_RES_MAX);
   lv_obj_align(txtBlockTime, txtStartDate, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+  txtAirTime = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtAirTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_long_mode(txtAirTime, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtAirTime, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtAirTime, LV_HOR_RES_MAX);
+  lv_obj_align(txtAirTime, txtBlockTime, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+  txtBlockDuration = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtBlockDuration, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_long_mode(txtBlockDuration, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtBlockDuration, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtBlockDuration, LV_HOR_RES_MAX/2);
+  lv_obj_align(txtBlockDuration, txtAirTime, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+
+  txtAirDuration = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtAirDuration, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_long_mode(txtAirDuration, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtAirDuration, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtAirDuration, LV_HOR_RES_MAX/2);
+  lv_obj_align(txtAirDuration, txtBlockDuration, LV_ALIGN_OUT_RIGHT_TOP, 0, 0);
+
+  newFlight();
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 }
@@ -172,7 +193,7 @@ void AviationTimer::StopIFR(const std::chrono::time_point<std::chrono::system_cl
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
   if(currentFlightState >= FlightState::blocksOff) {
     previousIFRTime += IFRStopTime - IFRStartTime;
-    const hh_mm_ss pITSep {duration_cast<seconds>(previousIFRTime)};
+    const hh_mm_ss pITSep {round<seconds>(previousIFRTime)};
     // TODO: make utility function out of hms
     lv_label_set_text_fmt(txtIFRTime, IFREndFmt, fmt_hhmmpd(BlocksOffTime, IFRStopTime).c_str(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
   }
@@ -189,10 +210,66 @@ void AviationTimer::blocksOff() {
   }
 }
 
+void AviationTimer::blocksOn() {
+  lv_label_set_text_static(txtFlightState, blocksOnLabelStr);
+  currentFlightState = FlightState::blocksOn;
+  BlocksOnTime = dateTimeController.UTCDateTime();
+  lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt,
+			fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(),
+			fmt_hhmmpd(BlocksOffTime, BlocksOnTime).c_str());
+  const hh_mm_ss blocktime(round<seconds>(BlocksOnTime-BlocksOffTime));
+  lv_label_set_text_fmt(txtBlockDuration, BlockDurationFmt,
+			blocktime.hours(), blocktime.minutes(), blocktime.seconds());
+  if (currentFlightRules == FlightRules::IFR) {
+    StopIFR(BlocksOnTime);
+  }
+}
+
+void AviationTimer::takeoff() {
+  lv_label_set_text_static(txtFlightState, departedLabelStr);
+  currentFlightState = FlightState::departed;
+  TakeoffTime = dateTimeController.UTCDateTime();
+  lv_label_set_text_fmt(txtAirTime, AirTimeFmt, fmt_hhmmpd(BlocksOffTime, TakeoffTime).c_str(), "");
+}
+
+void AviationTimer::land() {
+  lv_label_set_text_static(txtFlightState, landedLabelStr);
+  currentFlightState = FlightState::landed;
+  LandingTime = dateTimeController.UTCDateTime();
+  lv_label_set_text_fmt(txtAirTime, AirTimeFmt,
+			fmt_hhmmpd(BlocksOffTime, TakeoffTime).c_str(),
+			fmt_hhmmpd(BlocksOffTime, LandingTime).c_str());
+  const hh_mm_ss airtime(round<seconds>(LandingTime-TakeoffTime));
+  lv_label_set_text_fmt(txtAirDuration, AirDurationFmt,
+			airtime.hours(), airtime.minutes(), airtime.seconds());
+}
+
+void AviationTimer::shutdown() {
+  lv_label_set_text_static(txtFlightState, offLabelStr);
+  currentFlightState = FlightState::off;
+}
+
 void AviationTimer::idleAfterStartup() {
   lv_label_set_text_static(txtFlightState, idleAfterStartupLabelStr);
   currentFlightState = FlightState::idleAfterStartup;
   // TODO
+}
+
+void AviationTimer::idleBeforeShutdown() {
+  lv_label_set_text_static(txtFlightState, idleBeforeShutdownLabelStr);
+  currentFlightState = FlightState::idleBeforeShutdown;
+  // TODO
+}
+
+void AviationTimer::newFlight() {
+  lv_label_set_text_static(txtIFRTime, "");
+  lv_label_set_text_static(txtStartDate, "");
+  lv_label_set_text_static(txtBlockTime, "");
+  lv_label_set_text_static(txtAirTime, "");
+  lv_label_set_text_static(txtBlockDuration, "");
+  lv_label_set_text_static(txtAirDuration, "");
+
+  previousIFRTime = std::chrono::nanoseconds(0);
 }
 
 // START from StopWatch, should go away
@@ -267,7 +344,8 @@ void AviationTimer::flightStateBtnEventHandler() {
   using enum FlightState;
   switch (currentFlightState) {
   case off:
-    if (idleAfterStartupDuration > 0) {
+    newFlight();
+    if (idleAfterStartupDuration > std::chrono::seconds::zero()) {
       AviationTimer::idleAfterStartup();
     }
     else {
@@ -278,14 +356,24 @@ void AviationTimer::flightStateBtnEventHandler() {
     AviationTimer::blocksOff();
     break;
   case blocksOff:
+    AviationTimer::takeoff();
     break;
   case departed:
+    AviationTimer::land();
     break;
   case landed:
+    AviationTimer::blocksOn();
     break;
   case blocksOn:
+    if (idleBeforeShutdownDuration > std::chrono::seconds::zero()) {
+      AviationTimer::idleBeforeShutdown();
+    }
+    else {
+      AviationTimer::shutdown();
+    }
     break;
   case idleBeforeShutdown:
+    AviationTimer::shutdown();
     break;
   }
 }

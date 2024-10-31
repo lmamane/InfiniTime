@@ -46,25 +46,28 @@ namespace Pinetime {
 	// TOOD: make these configurable
 	// FIXME: at state changee, don't forget to test idle durations and if zero, skip state entirely
 	// TODO: need to check what the duration of "tick" in TickType_t is and adapt
-	static constexpr int idleAfterStartupDuration   = 60;
-	static constexpr int idleBeforeShutdownDuration = 120;
+	static constexpr auto idleAfterStartupDuration   = std::chrono::seconds(60);
+	static constexpr auto idleBeforeShutdownDuration = std::chrono::seconds(120);
 	// END TODO
 	enum class FlightRules { VFR, IFR };
 	FlightRules currentFlightRules = FlightRules::VFR;
 	static constexpr const char * const VFRLabelStr = "VFR";
 	static constexpr const char * const IFRLabelStr = "IFR";
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
-	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtIFRTime;
+	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration, *txtIFRTime;
 	static constexpr const char * const IFRStartFmt = "IFR since %s";
 	static constexpr const char * const IFREndFmt = "IFR e%s %dh%02dm%02d";
 	static constexpr const char * const FlightDateFmt = "%s";
 	static constexpr const char * const BlockTimeFmt = "B %s - %s";
+	static constexpr const char * const AirTimeFmt = "A %s - %s";
+	static constexpr const char * const BlockDurationFmt = "B%2dh%02dm%02d";
+	static constexpr const char * const AirDurationFmt = "A%2dh%02dm%02d";
 
 	// TODO: choose between TickType_t or TimeSeparated_t
 	std::chrono::nanoseconds previousIFRTime = std::chrono::nanoseconds(0);
 	// TODO: does this need to be a Utility::DirtyValue<>??? What is that?
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOffTime;
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> DepartureTime;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> TakeoffTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> LandingTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOnTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStartTime;
@@ -76,7 +79,14 @@ namespace Pinetime {
 	void StopIFR();
 
 	void blocksOff();
+	void blocksOn();
+	void takeoff();
+	void land();
+	void shutdown();
 	void idleAfterStartup();
+	void idleBeforeShutdown();
+
+	void newFlight();
 
 	Controllers::DateTime& dateTimeController;
 

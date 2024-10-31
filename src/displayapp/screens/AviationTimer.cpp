@@ -172,8 +172,6 @@ void AviationTimer::blocksOff() {
   using namespace std::chrono;
   currentFlightState = FlightState::blocksOff;
   BlocksOffTime = dateTimeController.UTCDateTime();
-  const auto dp = floor<days>(BlocksOffTime);
-  const hh_mm_ss time{BlocksOffTime - dp};
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
   lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
 }

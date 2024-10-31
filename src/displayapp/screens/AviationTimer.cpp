@@ -180,7 +180,6 @@ void AviationTimer::StopIFR(const std::chrono::time_point<std::chrono::system_cl
 
 void AviationTimer::blocksOff() {
   lv_label_set_text_static(txtFlightState, blocksOffLabelStr);
-  using namespace std::chrono;
   currentFlightState = FlightState::blocksOff;
   BlocksOffTime = dateTimeController.UTCDateTime();
   lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
@@ -220,7 +219,6 @@ void AviationTimer::Pause() {
   currentState = States::Halted;
   systemTask.PushMessage(Pinetime::System::Messages::EnableSleeping);
 }
-// END from StopWatch, should go away
 
 void AviationTimer::Refresh() {
   if (currentState == States::Running) {
@@ -252,6 +250,7 @@ void AviationTimer::Refresh() {
     }
   }
 }
+// END from StopWatch, should go away
 
 void AviationTimer::flightRulesBtnEventHandler() {
   switch (currentFlightRules) {

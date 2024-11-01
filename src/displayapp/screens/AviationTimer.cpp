@@ -31,42 +31,11 @@ namespace {
     return std::format("{:%R}{:+d}", tp, (tp_days - ref_days).count());
   }
 
-  // TODO: share this with StopWatch, now is duplicate
-  // maybe not used anymore in the end...
-  TimeSeparated_t convertTicksToTimeSegments(const TickType_t timeElapsed) {
-    // Centiseconds
-    const int timeElapsedCentis = timeElapsed * 100 / configTICK_RATE_HZ;
-
-    const int hundredths = (timeElapsedCentis % 100);
-    const int secs = (timeElapsedCentis / 100) % 60;
-    const int mins = ((timeElapsedCentis / 100) / 60) % 60;
-    const int hours = ((timeElapsedCentis / 100) / 60) / 60;
-    return TimeSeparated_t {hours, mins, secs, hundredths};
-  }
-
-  // all the following should disappear
-  void play_pause_event_handler(lv_obj_t* obj, lv_event_t event) {
-    auto* stopWatch = static_cast<AviationTimer*>(obj->user_data);
-    if (event == LV_EVENT_CLICKED) {
-      stopWatch->playPauseBtnEventHandler();
-    }
-  }
-
-  void stop_lap_event_handler(lv_obj_t* obj, lv_event_t event) {
-    auto* stopWatch = static_cast<AviationTimer*>(obj->user_data);
-    if (event == LV_EVENT_CLICKED) {
-      stopWatch->stopLapBtnEventHandler();
-    }
-  }
-
-  constexpr TickType_t blinkInterval = pdMS_TO_TICKS(1000);
 }
 
-AviationTimer::AviationTimer(System::SystemTask& systemTask,
-			     Controllers::DateTime& dateTimeController,
+AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
 			     Controllers::AviationTimer& aviationTimer)
-  : systemTask {systemTask}
-  , dateTimeController {dateTimeController}
+  : dateTimeController {dateTimeController}
   , aviationTimerController (aviationTimer) {
   static constexpr uint8_t btnWidth = 76;
   static constexpr uint8_t btnHeight = 50;
@@ -144,42 +113,7 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask,
 
 AviationTimer::~AviationTimer() {
   lv_task_del(taskRefresh);
-  systemTask.PushMessage(Pinetime::System::Messages::EnableSleeping);
   lv_obj_clean(lv_scr_act());
-}
-
-void AviationTimer::SetInterfacePaused() {
-  lv_obj_set_style_local_bg_color(btnStopLap, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_RED);
-  lv_label_set_text_static(txtStopLap, Symbols::stop);
-}
-
-void AviationTimer::SetInterfaceRunning() {
-  lv_obj_set_state(time, LV_STATE_DEFAULT);
-  lv_obj_set_state(msecTime, LV_STATE_DEFAULT);
-  lv_obj_set_style_local_bg_color(btnStopLap, LV_BTN_PART_MAIN, LV_STATE_DEFAULT, Colors::bgAlt);
-
-  lv_label_set_text_static(txtStopLap, Symbols::lapsFlag);
-
-  lv_obj_set_state(btnStopLap, LV_STATE_DEFAULT);
-  lv_obj_set_state(txtStopLap, LV_STATE_DEFAULT);
-}
-
-void AviationTimer::SetInterfaceStopped() {
-  lv_obj_set_state(time, LV_STATE_DISABLED);
-  lv_obj_set_state(msecTime, LV_STATE_DISABLED);
-
-  lv_label_set_text_static(time, "00:00");
-  lv_label_set_text_static(msecTime, "00");
-
-  if (isHoursLabelUpdated) {
-    lv_obj_set_style_local_text_font(time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_76);
-    lv_obj_realign(time);
-    isHoursLabelUpdated = false;
-  }
-
-  lv_label_set_text_static(txtStopLap, Symbols::lapsFlag);
-  lv_obj_set_state(btnStopLap, LV_STATE_DISABLED);
-  lv_obj_set_state(txtStopLap, LV_STATE_DISABLED);
 }
 
 void AviationTimer::StartIFR() {
@@ -296,33 +230,6 @@ void AviationTimer::Refresh() {
   }
 }
 
-// START from StopWatch, should go away
-void AviationTimer::Reset() {
-  SetInterfaceStopped();
-  currentState = States::Init;
-  oldTimeElapsed = 0;
-  lapsDone = 0;
-}
-
-void AviationTimer::Start() {
-  SetInterfaceRunning();
-  startTime = xTaskGetTickCount();
-  currentState = States::Running;
-  systemTask.PushMessage(Pinetime::System::Messages::DisableSleeping);
-}
-
-void AviationTimer::Pause() {
-  SetInterfacePaused();
-  startTime = 0;
-  // Store the current time elapsed in cache
-  oldTimeElapsed = laps[lapsDone];
-  blinkTime = xTaskGetTickCount() + blinkInterval;
-  currentState = States::Halted;
-  systemTask.PushMessage(Pinetime::System::Messages::EnableSleeping);
-}
-
-// END from StopWatch, should go away
-
 void AviationTimer::flightRulesBtnEventHandler() {
   switch (currentFlightRules) {
   case FlightRules::VFR:
@@ -372,41 +279,3 @@ void AviationTimer::flightStateBtnEventHandler() {
   }
 }
 
-// BEGIN should be removed
-void AviationTimer::playPauseBtnEventHandler() {
-  if (currentState == States::Init || currentState == States::Halted) {
-    Start();
-  } else if (currentState == States::Running) {
-    Pause();
-  }
-}
-
-void AviationTimer::stopLapBtnEventHandler() {
-  // If running, then this button is used to save laps
-  if (currentState == States::Running) {
-    lapsDone = std::min(lapsDone + 1, maxLapCount);
-    for (int i = lapsDone - displayedLaps; i < lapsDone; i++) {
-      if (i < 0) {
-        continue;
-      }
-      TimeSeparated_t times = convertTicksToTimeSegments(laps[i]);
-      char buffer[17];
-      if (times.hours == 0) {
-        snprintf(buffer, sizeof(buffer), "#%2d    %2d:%02d.%02d\n", i + 1, times.mins, times.secs, times.hundredths);
-      } else {
-        snprintf(buffer, sizeof(buffer), "#%2d %2d:%02d:%02d.%02d\n", i + 1, times.hours, times.mins, times.secs, times.hundredths);
-      }
-    }
-  } else if (currentState == States::Halted) {
-    Reset();
-  }
-}
-
-bool AviationTimer::OnButtonPushed() {
-  if (currentState == States::Running) {
-    Pause();
-    return true;
-  }
-  return false;
-}
-// END should be removed

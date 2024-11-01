@@ -7,12 +7,11 @@
 #include <chrono>
 #include "portmacro_cmsis.h"
 
-#include "systemtask/SystemTask.h"
 #include "displayapp/apps/Apps.h"
 #include "displayapp/Controllers.h"
 #include "components/datetime/DateTimeController.h"
+#include "components/timer/AviationTimer.h"
 #include "Symbols.h"
-#include "StopWatch.h"
 
 namespace Pinetime {
   namespace Applications {
@@ -20,8 +19,7 @@ namespace Pinetime {
 
       class AviationTimer : public Screen {
       public:
-        explicit AviationTimer(System::SystemTask& systemTask,
-			       Controllers::DateTime& dateTimeController,
+        explicit AviationTimer(Controllers::DateTime& dateTimeController,
 			       Controllers::AviationTimer& aviationTimer);
         ~AviationTimer() override;
         void Refresh() override;
@@ -29,11 +27,6 @@ namespace Pinetime {
 
 	void flightRulesBtnEventHandler();
 	void flightStateBtnEventHandler();
-	// BEGIN these are from StopWatch, should disappear
-        void playPauseBtnEventHandler();
-        void stopLapBtnEventHandler();
-        bool OnButtonPushed() override;
-	// END   these are from StopWatch, should disappear
 
       protected:
 	enum class FlightState { off, idleAfterStartup, blocksOff, departed, landed,  blocksOn, idleBeforeShutdown};
@@ -58,6 +51,7 @@ namespace Pinetime {
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
 	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration;
 	lv_obj_t *txtShowTimer, *txtIFRTime;
+	lv_task_t* taskRefresh;
 	static constexpr const char * const IFRStartFmt = "IFR since %s";
 	static constexpr const char * const IFREndFmt = "IFR e%s %dh%02dm%02d";
 	static constexpr const char * const FlightDateFmt = "%s";
@@ -66,9 +60,7 @@ namespace Pinetime {
 	static constexpr const char * const BlockDurationFmt = "B%2dh%02dm%02d";
 	static constexpr const char * const AirDurationFmt = "A%2dh%02dm%02d";
 
-	// TODO: choose between TickType_t or TimeSeparated_t
 	std::chrono::nanoseconds previousIFRTime = std::chrono::nanoseconds(0);
-	// TODO: does this need to be a Utility::DirtyValue<>??? What is that?
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOffTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> TakeoffTime;
 	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> LandingTime;
@@ -94,31 +86,6 @@ namespace Pinetime {
 	Controllers::DateTime& dateTimeController;
 	Controllers::AviationTimer& aviationTimerController;
 
-      private:
-	// BEGIN these are from StopWatch, should disappear
-        void SetInterfacePaused();
-        void SetInterfaceRunning();
-        void SetInterfaceStopped();
-
-        void Reset();
-        void Start();
-        void Pause();
-
-        Pinetime::System::SystemTask& systemTask;
-        States currentState = States::Init;
-        TickType_t startTime;
-        TickType_t oldTimeElapsed = 0;
-        TickType_t blinkTime = 0;
-        static constexpr int maxLapCount = 20;
-        TickType_t laps[maxLapCount + 1];
-        static constexpr int displayedLaps = 2;
-        int lapsDone = 0;
-        lv_obj_t *time, *msecTime, *btnStopLap, *txtStopLap;
-        lv_obj_t* lapText;
-        bool isHoursLabelUpdated = false;
-	// END    these are from StopWatch, should disappear
-
-        lv_task_t* taskRefresh;
       };
     }
 
@@ -128,8 +95,7 @@ namespace Pinetime {
       static constexpr const char* icon = Screens::Symbols::plane;
 
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::AviationTimer(*controllers.systemTask,
-					  controllers.dateTimeController,
+        return new Screens::AviationTimer(controllers.dateTimeController,
 					  controllers.aviationTimer);
       };
     };

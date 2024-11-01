@@ -12,6 +12,7 @@
 * make
    * VFR eye icon 0xf06e  (or maybe sun 0xf185  - maybe already there for weather)
    * IFR cloud 0xf0c2  (maybe alredy there for weather)
+* IFR hold timers
 
 envisioned display;
 

@@ -69,6 +69,11 @@ namespace {
     auto* dispApp = static_cast<DisplayApp*>(pvTimerGetTimerID(xTimer));
     dispApp->PushMessage(Display::Messages::TimerDone);
   }
+
+  void AviationTimerCallback(TimerHandle_t xTimer) {
+    auto* dispApp = static_cast<DisplayApp*>(pvTimerGetTimerID(xTimer));
+    dispApp->PushMessage(Display::Messages::AviationTimerDone);
+  }
 }
 
 DisplayApp::DisplayApp(Drivers::St7789& lcd,
@@ -105,6 +110,7 @@ DisplayApp::DisplayApp(Drivers::St7789& lcd,
     spiNorFlash {spiNorFlash},
     lvgl {lcd, filesystem},
     timer(this, TimerCallback),
+    aviationTimer(this, AviationTimerCallback),
     controllers {batteryController,
                  bleController,
                  dateTimeController,
@@ -118,6 +124,7 @@ DisplayApp::DisplayApp(Drivers::St7789& lcd,
                  nullptr,
                  filesystem,
                  timer,
+                 aviationTimer,
                  nullptr,
                  this,
                  lvgl,
@@ -375,6 +382,19 @@ void DisplayApp::Refresh() {
           timer->Reset();
         } else {
           LoadNewScreen(Apps::Timer, DisplayApp::FullRefreshDirections::Up);
+        }
+        motorController.RunForDuration(35);
+        break;
+      case Messages::AviationTimerDone:
+        if (state != States::Running) {
+          PushMessageToSystemTask(System::Messages::GoToRunning);
+        }
+        if (currentApp == Apps::AviationTimer) {
+          lv_disp_trig_activity(nullptr);
+          auto* timer = static_cast<Screens::AviationTimer*>(currentScreen.get());
+          timer->TimerDone();
+        } else {
+          LoadNewScreen(Apps::AviationTimer, DisplayApp::FullRefreshDirections::Up);
         }
         motorController.RunForDuration(35);
         break;

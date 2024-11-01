@@ -21,9 +21,11 @@ namespace Pinetime {
       class AviationTimer : public Screen {
       public:
         explicit AviationTimer(System::SystemTask& systemTask,
-			       Controllers::DateTime& dateTimeController);
+			       Controllers::DateTime& dateTimeController,
+			       Controllers::AviationTimer& aviationTimer);
         ~AviationTimer() override;
         void Refresh() override;
+        void TimerDone();
 
 	void flightRulesBtnEventHandler();
 	void flightStateBtnEventHandler();
@@ -54,7 +56,8 @@ namespace Pinetime {
 	static constexpr const char * const VFRLabelStr = "VFR";
 	static constexpr const char * const IFRLabelStr = "IFR";
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
-	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration, *txtIFRTime;
+	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration;
+	lv_obj_t *txtShowTimer, *txtIFRTime;
 	static constexpr const char * const IFRStartFmt = "IFR since %s";
 	static constexpr const char * const IFREndFmt = "IFR e%s %dh%02dm%02d";
 	static constexpr const char * const FlightDateFmt = "%s";
@@ -89,6 +92,7 @@ namespace Pinetime {
 	void newFlight();
 
 	Controllers::DateTime& dateTimeController;
+	Controllers::AviationTimer& aviationTimerController;
 
       private:
 	// BEGIN these are from StopWatch, should disappear
@@ -125,7 +129,8 @@ namespace Pinetime {
 
       static Screens::Screen* Create(AppControllers& controllers) {
         return new Screens::AviationTimer(*controllers.systemTask,
-					  controllers.dateTimeController);
+					  controllers.dateTimeController,
+					  controllers.aviationTimer);
       };
     };
   }

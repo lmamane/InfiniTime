@@ -8,6 +8,9 @@
 namespace Pinetime {
   namespace Controllers {
     class Timer {
+    protected:
+      Timer(void* timerData, TimerCallbackFunction_t timerCallbackFunction, const char * const timerName);
+
     public:
       Timer(void* timerData, TimerCallbackFunction_t timerCallbackFunction);
 

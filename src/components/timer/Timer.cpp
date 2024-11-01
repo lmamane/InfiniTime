@@ -2,8 +2,12 @@
 
 using namespace Pinetime::Controllers;
 
-Timer::Timer(void* const timerData, TimerCallbackFunction_t timerCallbackFunction) {
-  timer = xTimerCreate("Timer", 1, pdFALSE, timerData, timerCallbackFunction);
+Timer::Timer(void* const timerData, TimerCallbackFunction_t timerCallbackFunction, const char * const timerName) {
+  timer = xTimerCreate(timerName, 1, pdFALSE, timerData, timerCallbackFunction);
+}
+
+Timer::Timer(void* const timerData, TimerCallbackFunction_t timerCallbackFunction) :
+  Timer(timerData, timerCallbackFunction, "Timer") {
 }
 
 void Timer::StartTimer(std::chrono::milliseconds duration) {

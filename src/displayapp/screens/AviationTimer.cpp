@@ -62,9 +62,12 @@ namespace {
   constexpr TickType_t blinkInterval = pdMS_TO_TICKS(1000);
 }
 
-AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTime& dateTimeController)
+AviationTimer::AviationTimer(System::SystemTask& systemTask,
+			     Controllers::DateTime& dateTimeController,
+			     Controllers::AviationTimer& aviationTimer)
   : systemTask {systemTask}
-  ,  dateTimeController {dateTimeController} {
+  , dateTimeController {dateTimeController}
+  , aviationTimerController (aviationTimer) {
   static constexpr uint8_t btnWidth = 76;
   static constexpr uint8_t btnHeight = 50;
   btnFlightRules = lv_btn_create(lv_scr_act(), nullptr);
@@ -125,6 +128,14 @@ AviationTimer::AviationTimer(System::SystemTask& systemTask, Controllers::DateTi
   lv_label_set_align(txtAirDuration, LV_LABEL_ALIGN_LEFT);
   lv_obj_set_width(txtAirDuration, LV_HOR_RES_MAX/2);
   lv_obj_align(txtAirDuration, txtBlockDuration, LV_ALIGN_OUT_RIGHT_TOP, 0, 0);
+
+  txtShowTimer = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtShowTimer, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_obj_set_style_local_text_font(txtShowTimer, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
+  lv_label_set_long_mode(txtShowTimer, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtShowTimer, LV_LABEL_ALIGN_CENTER);
+  lv_obj_set_width(txtShowTimer, LV_HOR_RES_MAX);
+  lv_obj_align(txtShowTimer, txtBlockDuration, LV_ALIGN_OUT_BOTTOM_LEFT, 0, lv_obj_get_height(txtShowTimer)/2);
 
   newFlight();
 
@@ -252,13 +263,13 @@ void AviationTimer::shutdown() {
 void AviationTimer::idleAfterStartup() {
   lv_label_set_text_static(txtFlightState, idleAfterStartupLabelStr);
   currentFlightState = FlightState::idleAfterStartup;
-  // TODO
+  aviationTimerController.StartTimer(idleAfterStartupDuration);
 }
 
 void AviationTimer::idleBeforeShutdown() {
   lv_label_set_text_static(txtFlightState, idleBeforeShutdownLabelStr);
   currentFlightState = FlightState::idleBeforeShutdown;
-  // TODO
+  aviationTimerController.StartTimer(idleBeforeShutdownDuration);
 }
 
 void AviationTimer::newFlight() {
@@ -269,7 +280,20 @@ void AviationTimer::newFlight() {
   lv_label_set_text_static(txtBlockDuration, "");
   lv_label_set_text_static(txtAirDuration, "");
 
+  TimerDone();
+
   previousIFRTime = std::chrono::nanoseconds(0);
+}
+
+void AviationTimer::TimerDone() {
+  lv_label_set_text_static(txtShowTimer, "");
+}
+
+void AviationTimer::Refresh() {
+  if (aviationTimerController.IsRunning()) {
+    const hh_mm_ss timesep(aviationTimerController.GetTimeRemaining());
+    lv_label_set_text_fmt(txtShowTimer, "%02d:%02d", timesep.hours() * 60 + timesep.minutes(), timesep.seconds());
+  }
 }
 
 // START from StopWatch, should go away
@@ -297,36 +321,6 @@ void AviationTimer::Pause() {
   systemTask.PushMessage(Pinetime::System::Messages::EnableSleeping);
 }
 
-void AviationTimer::Refresh() {
-  if (currentState == States::Running) {
-    laps[lapsDone] = oldTimeElapsed + xTaskGetTickCount() - startTime;
-
-    TimeSeparated_t currentTimeSeparated = convertTicksToTimeSegments(laps[lapsDone]);
-    if (currentTimeSeparated.hours == 0) {
-      lv_label_set_text_fmt(time, "%02d:%02d", currentTimeSeparated.mins, currentTimeSeparated.secs);
-    } else {
-      lv_label_set_text_fmt(time, "%02d:%02d:%02d", currentTimeSeparated.hours, currentTimeSeparated.mins, currentTimeSeparated.secs);
-      if (!isHoursLabelUpdated) {
-        lv_obj_set_style_local_text_font(time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
-        lv_obj_realign(time);
-        isHoursLabelUpdated = true;
-      }
-    }
-    lv_label_set_text_fmt(msecTime, "%02d", currentTimeSeparated.hundredths);
-  } else if (currentState == States::Halted) {
-    const TickType_t currentTime = xTaskGetTickCount();
-    if (currentTime > blinkTime) {
-      blinkTime = currentTime + blinkInterval;
-      if (lv_obj_get_state(time, LV_LABEL_PART_MAIN) == LV_STATE_DEFAULT) {
-        lv_obj_set_state(time, LV_STATE_DISABLED);
-        lv_obj_set_state(msecTime, LV_STATE_DISABLED);
-      } else {
-        lv_obj_set_state(time, LV_STATE_DEFAULT);
-        lv_obj_set_state(msecTime, LV_STATE_DEFAULT);
-      }
-    }
-  }
-}
 // END from StopWatch, should go away
 
 void AviationTimer::flightRulesBtnEventHandler() {

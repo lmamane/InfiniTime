@@ -58,6 +58,7 @@ namespace Pinetime {
 
 	void StartIFR();
 	void StopIFR();
+
 	void showIFRStart();
 	void showIFRDuration();
 
@@ -69,10 +70,14 @@ namespace Pinetime {
 	void idleAfterStartup();
 	void idleBeforeShutdown();
 
+	void showBlocksOffTime();
+	void showBlockDuration();
 	void showTakeoffTime();
 	void showAirTime();
 
 	void newFlight();
+
+	void Redraw();
 
 	Controllers::DateTime& dateTimeController;
 	Controllers::AviationTimer& aviationTimerController;

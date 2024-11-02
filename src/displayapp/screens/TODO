@@ -9,22 +9,15 @@
      * taxying after landing: truck-plane? plane-circle-check?
      Have to decide if I show _current_ situation or _new_ situation
      after button will be pressed.
-* make
+ * make
    * VFR eye icon 0xf06e  (or maybe sun 0xf185  - maybe already there for weather)
    * IFR cloud 0xf0c2  (maybe alredy there for weather)
-* IFR hold timers
+ * IFR hold timers
+ * landing counter (that's why I wanted the mode button to be one-third width...)
 
-envisioned display;
-
- Block Off: date? h:mm
- T/O:       date? h:mm
- Landed:    date? h:mm
- Block On:  date? h:mm
- + when timer running (after startup / before shutdown), the timer
-
-
-if wide enough, maybe (N = number of days later):
-
- Date: yyyy-mm-dd
- Block: h:mm - h:mm+N
- Air:   h:mm - h:mm+N
+We could save a few bytes by storing:
+ * previousIFRTime in seconds as int32 or even int16 (already > 18h)
+ * BlocksOffTime as it is
+ * all other times as unsigned (positive) int16 offsets to BlocksOffTime
+ * do not store currentFlightState per se, but implicit by zero-ness
+   of corresponding time.

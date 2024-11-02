@@ -31,19 +31,19 @@ namespace Pinetime {
 	using duration = Pinetime::Controllers::AviationTimer::duration;
 	using FlightRules = Pinetime::Controllers::AviationTimer::FlightRules;
 	using FlightState = Pinetime::Controllers::AviationTimer::FlightState;
-	static constexpr const char * const offLabelStr = "off";
-	static constexpr const char * const idleAfterStartupLabelStr = "Startup";
-	static constexpr const char * const blocksOffLabelStr = "Blocks Off";
-	static constexpr const char * const departedLabelStr = "in air";
-	static constexpr const char * const landedLabelStr = "landed";
-	static constexpr const char * const blocksOnLabelStr = "Blocks On";
-	static constexpr const char * const idleBeforeShutdownLabelStr = "Shutdown";
+	static constexpr const char * const offLabelStr = Screens::Symbols::planeCircleXMark;
+	static constexpr const char * const idleAfterStartupLabelStr = HOURGLASS_SYMBOL PLANEDEPARTURE_SYMBOL;
+	static constexpr const char * const blocksOffLabelStr = PLANEDEPARTURE_SYMBOL;
+	static constexpr const char * const departedLabelStr = Screens::Symbols::plane;
+	static constexpr const char * const landedLabelStr = Screens::Symbols::planeArrival;
+	static constexpr const char * const blocksOnLabelStr = Screens::Symbols::planeLock;
+	static constexpr const char * const idleBeforeShutdownLabelStr = HOURGLASS_SYMBOL PLANECIRCLEXMARK_SYMBOL;
 	// TOOD: make these configurable
 	static constexpr auto idleAfterStartupDuration   = std::chrono::seconds(60);
 	static constexpr auto idleBeforeShutdownDuration = std::chrono::seconds(120);
 	// END TODO
-	static constexpr const char * const VFRLabelStr = "VFR";
-	static constexpr const char * const IFRLabelStr = "IFR";
+	static constexpr const char * const VFRLabelStr = Screens::Symbols::eye;
+	static constexpr const char * const IFRLabelStr = Screens::Symbols::cloud;
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
 	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration;
 	lv_obj_t *txtShowTimer, *txtIFRTime;
@@ -88,7 +88,7 @@ namespace Pinetime {
     template <>
     struct AppTraits<Apps::AviationTimer> {
       static constexpr Apps app = Apps::AviationTimer;
-      static constexpr const char* icon = Screens::Symbols::plane;
+      static constexpr const char* icon = Screens::Symbols::planeUp;
 
       static Screens::Screen* Create(AppControllers& controllers) {
         return new Screens::AviationTimer(controllers.dateTimeController,

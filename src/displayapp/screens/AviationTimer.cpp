@@ -49,7 +49,7 @@ AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
   btnFlightState = lv_btn_create(lv_scr_act(), nullptr);
   btnFlightState->user_data = this;
   lv_obj_set_event_cb(btnFlightState, flight_state_event_handler);
-  lv_obj_set_size(btnFlightState, 2*btnWidth, btnHeight);
+  lv_obj_set_size(btnFlightState, btnWidth, btnHeight);
   lv_obj_align(btnFlightState, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
   txtFlightState = lv_label_create(btnFlightState, nullptr);
 

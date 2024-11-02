@@ -32,7 +32,8 @@ namespace Pinetime {
         static constexpr const char* pause = "\xEF\x81\x8C";
         static constexpr const char* stop = "\xEF\x81\x8D";
         static constexpr const char* stopWatch = "\xEF\x8B\xB2";
-        static constexpr const char* hourGlass = "\xEF\x89\x92";
+#define HOURGLASS_SYMBOL "\xEF\x89\x92"
+        static constexpr const char* hourGlass = HOURGLASS_SYMBOL;
         static constexpr const char* lapsFlag = "\xEF\x80\xA4";
         static constexpr const char* drum = "\xEF\x95\xA9";
         static constexpr const char* dice = "\xEF\x94\xA2";
@@ -42,6 +43,13 @@ namespace Pinetime {
         static constexpr const char* calculator = "\xEF\x87\xAC";
         static constexpr const char* backspace = "\xEF\x95\x9A";
         static constexpr const char* plane = "\xEF\x81\xB2";
+        static constexpr const char* planeUp = "\xEE\x88\xAD";
+#define PLANECIRCLEXMARK_SYMBOL "\xEE\x95\x97"
+        static constexpr const char* planeCircleXMark = PLANECIRCLEXMARK_SYMBOL;
+        static constexpr const char* planeLock = "\xEE\x95\x98";
+#define PLANEDEPARTURE_SYMBOL "\xEF\x96\xB0"
+        static constexpr const char* planeDeparture = PLANEDEPARTURE_SYMBOL;
+        static constexpr const char* planeArrival = "\xEF\x96\xAF";
 
         // fontawesome_weathericons.c
         // static constexpr const char* sun = "\xEF\x86\x85";
@@ -49,7 +57,7 @@ namespace Pinetime {
         static constexpr const char* cloudSunRain = "\xEF\x9D\x83";
         static constexpr const char* cloudShowersHeavy = "\xEF\x9D\x80";
         static constexpr const char* smog = "\xEF\x9D\x9F";
-        static constexpr const char* cloud = "\xEF\x83\x82";
+        static constexpr const char* cloud = "\xEF\x83\x82"; // also used in jetbrains_mono_bold_20
         static constexpr const char* cloudMeatball = "\xEF\x9C\xBB";
         static constexpr const char* bolt = "\xEF\x83\xA7";
         static constexpr const char* snowflake = "\xEF\x8B\x9C";

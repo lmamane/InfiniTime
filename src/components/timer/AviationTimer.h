@@ -167,12 +167,18 @@ namespace Pinetime {
       void idleAfterStartup(Timer::duration duration) {
 	assert(currentFlightState == FlightState::beforeStartup);
 	currentFlightState = FlightState::idleAfterStartup;
+	if (IsRunning()) {
+	  StopTimer();
+	}
 	StartTimer(duration);
       }
 
       void idleBeforeShutdown(Timer::duration duration) {
 	assert(currentFlightState == FlightState::blocksOn);
 	currentFlightState = FlightState::idleBeforeShutdown;
+	if (IsRunning()) {
+	  StopTimer();
+	}
 	StartTimer(duration);
       }
 

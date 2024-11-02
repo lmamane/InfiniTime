@@ -468,7 +468,6 @@ list(APPEND SOURCE_FILES
         components/motor/MotorController.cpp
         components/settings/Settings.cpp
         components/timer/Timer.cpp
-        components/timer/AviationTimer.cpp
         components/alarm/AlarmController.cpp
         components/fs/FS.cpp
         drivers/Cst816s.cpp

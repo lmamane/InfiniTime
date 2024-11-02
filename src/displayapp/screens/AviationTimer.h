@@ -4,8 +4,6 @@
 #include <lvgl/lvgl.h>
 
 #include <FreeRTOS.h>
-#include <chrono>
-#include "portmacro_cmsis.h"
 
 #include "displayapp/apps/Apps.h"
 #include "displayapp/Controllers.h"
@@ -29,7 +27,10 @@ namespace Pinetime {
 	void flightStateBtnEventHandler();
 
       protected:
-	enum class FlightState { off, idleAfterStartup, blocksOff, departed, landed,  blocksOn, idleBeforeShutdown};
+	using time_point = Pinetime::Controllers::AviationTimer::time_point;
+	using duration = Pinetime::Controllers::AviationTimer::duration;
+	using FlightRules = Pinetime::Controllers::AviationTimer::FlightRules;
+	using FlightState = Pinetime::Controllers::AviationTimer::FlightState;
 	static constexpr const char * const offLabelStr = "off";
 	static constexpr const char * const idleAfterStartupLabelStr = "Startup";
 	static constexpr const char * const blocksOffLabelStr = "Blocks Off";
@@ -37,15 +38,10 @@ namespace Pinetime {
 	static constexpr const char * const landedLabelStr = "landed";
 	static constexpr const char * const blocksOnLabelStr = "Blocks On";
 	static constexpr const char * const idleBeforeShutdownLabelStr = "Shutdown";
-	FlightState currentFlightState = FlightState::off;
 	// TOOD: make these configurable
-	// FIXME: at state changee, don't forget to test idle durations and if zero, skip state entirely
-	// TODO: need to check what the duration of "tick" in TickType_t is and adapt
 	static constexpr auto idleAfterStartupDuration   = std::chrono::seconds(60);
 	static constexpr auto idleBeforeShutdownDuration = std::chrono::seconds(120);
 	// END TODO
-	enum class FlightRules { VFR, IFR };
-	FlightRules currentFlightRules = FlightRules::VFR;
 	static constexpr const char * const VFRLabelStr = "VFR";
 	static constexpr const char * const IFRLabelStr = "IFR";
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
@@ -60,18 +56,10 @@ namespace Pinetime {
 	static constexpr const char * const BlockDurationFmt = "B%2dh%02dm%02d";
 	static constexpr const char * const AirDurationFmt = "A%2dh%02dm%02d";
 
-	std::chrono::nanoseconds previousIFRTime = std::chrono::nanoseconds(0);
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOffTime;
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> TakeoffTime;
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> LandingTime;
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> BlocksOnTime;
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStartTime;
-
-	void StartIFR(std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start_time);
-	void StopIFR(std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> stop_time);
-
 	void StartIFR();
 	void StopIFR();
+	void showIFRStart();
+	void showIFRDuration();
 
 	void blocksOff();
 	void blocksOn();
@@ -80,6 +68,9 @@ namespace Pinetime {
 	void shutdown();
 	void idleAfterStartup();
 	void idleBeforeShutdown();
+
+	void showTakeoffTime();
+	void showAirTime();
 
 	void newFlight();
 

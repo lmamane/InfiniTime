@@ -117,93 +117,108 @@ AviationTimer::~AviationTimer() {
 }
 
 void AviationTimer::StartIFR() {
-  StartIFR(dateTimeController.UTCDateTime());
+  lv_label_set_text_static(txtFlightRules, IFRLabelStr);
+  if (aviationTimerController.StartIFR(dateTimeController.UTCDateTime())) {
+    showIFRStart();
+  }
 }
 
 void AviationTimer::StopIFR() {
-  StopIFR(dateTimeController.UTCDateTime());
-}
-
-void AviationTimer::StartIFR(const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> start_time) {
-  currentFlightRules = FlightRules::IFR;
-  lv_label_set_text_static(txtFlightRules, IFRLabelStr);
-  if(currentFlightState >= FlightState::blocksOff) {
-    IFRStartTime = start_time;
-    lv_label_set_text_fmt(txtIFRTime, IFRStartFmt, fmt_hhmmpd(BlocksOffTime, IFRStartTime).c_str());
-  }
-}
-
-void AviationTimer::StopIFR(const std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> IFRStopTime) {
-  currentFlightRules = FlightRules::VFR;
   lv_label_set_text_static(txtFlightRules, VFRLabelStr);
-  if(currentFlightState >= FlightState::blocksOff) {
-    previousIFRTime += IFRStopTime - IFRStartTime;
-    const hh_mm_ss pITSep {round<seconds>(previousIFRTime)};
-    // TODO: make utility function out of hms
-    lv_label_set_text_fmt(txtIFRTime, IFREndFmt, fmt_hhmmpd(BlocksOffTime, IFRStopTime).c_str(), pITSep.hours(), pITSep.minutes(), pITSep.seconds());
+  if(aviationTimerController.StopIFR(dateTimeController.UTCDateTime())) {
+    showIFRDuration();
   }
+}
+
+void AviationTimer::showIFRStart() {
+  lv_label_set_text_fmt(txtIFRTime,
+			IFRStartFmt,
+			fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+				   aviationTimerController.getIFRStartTime()).c_str());
+}
+
+void AviationTimer::showIFRDuration() {
+    const hh_mm_ss pITSep {round<seconds>(aviationTimerController.getIFRDuration())};
+    lv_label_set_text_fmt(txtIFRTime,
+			  IFREndFmt,
+			  fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+				     aviationTimerController.getIFRStopTime()).c_str(),
+			  pITSep.hours(),
+			  pITSep.minutes(),
+			  pITSep.seconds());
 }
 
 void AviationTimer::blocksOff() {
   lv_label_set_text_static(txtFlightState, blocksOffLabelStr);
-  currentFlightState = FlightState::blocksOff;
-  BlocksOffTime = dateTimeController.UTCDateTime();
+  const time_point BlocksOffTime(dateTimeController.UTCDateTime());
+  aviationTimerController.blocksOff(BlocksOffTime);
   lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
-  if (currentFlightRules == FlightRules::IFR) {
-    StartIFR(BlocksOffTime);
+  if (aviationTimerController.isIFRInProgress()) {
+    showIFRStart();
   }
 }
 
 void AviationTimer::blocksOn() {
   lv_label_set_text_static(txtFlightState, blocksOnLabelStr);
-  currentFlightState = FlightState::blocksOn;
-  BlocksOnTime = dateTimeController.UTCDateTime();
+  aviationTimerController.blocksOn(dateTimeController.UTCDateTime());
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt,
-			fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(),
-			fmt_hhmmpd(BlocksOffTime, BlocksOnTime).c_str());
-  const hh_mm_ss blocktime(round<seconds>(BlocksOnTime-BlocksOffTime));
+			fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+				   aviationTimerController.getBlocksOffTime()).c_str(),
+			fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+				   aviationTimerController.getBlocksOnTime()).c_str());
+  const hh_mm_ss blocktime(round<seconds>(aviationTimerController.getBlocksOnTime() - aviationTimerController.getBlocksOffTime()));
   lv_label_set_text_fmt(txtBlockDuration, BlockDurationFmt,
 			blocktime.hours(), blocktime.minutes(), blocktime.seconds());
-  if (currentFlightRules == FlightRules::IFR) {
-    StopIFR(BlocksOnTime);
+  if (aviationTimerController.getFlightRules() == FlightRules::IFR) {
+    showIFRDuration();
   }
 }
 
 void AviationTimer::takeoff() {
   lv_label_set_text_static(txtFlightState, departedLabelStr);
-  currentFlightState = FlightState::departed;
-  TakeoffTime = dateTimeController.UTCDateTime();
-  lv_label_set_text_fmt(txtAirTime, AirTimeFmt, fmt_hhmmpd(BlocksOffTime, TakeoffTime).c_str(), "");
+  aviationTimerController.takeoff(dateTimeController.UTCDateTime());
+  showTakeoffTime();
 }
 
 void AviationTimer::land() {
   lv_label_set_text_static(txtFlightState, landedLabelStr);
-  currentFlightState = FlightState::landed;
-  LandingTime = dateTimeController.UTCDateTime();
+  aviationTimerController.land(dateTimeController.UTCDateTime());
+  showAirTime();
+}
+
+void AviationTimer::showTakeoffTime() {
+  lv_label_set_text_fmt(txtAirTime,
+			AirTimeFmt,
+			fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+				   aviationTimerController.getTakeoffTime()).c_str(), "");
+}
+
+void AviationTimer::showAirTime() {
+  const auto BlocksOffTime(aviationTimerController.getBlocksOffTime());
+  const auto TakeoffTime(aviationTimerController.getTakeoffTime());
+  const auto LandingTime(aviationTimerController.getLandingTime());
   lv_label_set_text_fmt(txtAirTime, AirTimeFmt,
 			fmt_hhmmpd(BlocksOffTime, TakeoffTime).c_str(),
 			fmt_hhmmpd(BlocksOffTime, LandingTime).c_str());
-  const hh_mm_ss airtime(round<seconds>(LandingTime-TakeoffTime));
+  const hh_mm_ss airtime(round<seconds>(LandingTime - TakeoffTime));
   lv_label_set_text_fmt(txtAirDuration, AirDurationFmt,
 			airtime.hours(), airtime.minutes(), airtime.seconds());
 }
 
 void AviationTimer::shutdown() {
   lv_label_set_text_static(txtFlightState, offLabelStr);
-  currentFlightState = FlightState::off;
+  aviationTimerController.shutdown();
 }
 
 void AviationTimer::idleAfterStartup() {
   lv_label_set_text_static(txtFlightState, idleAfterStartupLabelStr);
-  currentFlightState = FlightState::idleAfterStartup;
-  aviationTimerController.StartTimer(idleAfterStartupDuration);
+  aviationTimerController.idleAfterStartup(idleAfterStartupDuration);
 }
 
 void AviationTimer::idleBeforeShutdown() {
   lv_label_set_text_static(txtFlightState, idleBeforeShutdownLabelStr);
-  currentFlightState = FlightState::idleBeforeShutdown;
-  aviationTimerController.StartTimer(idleBeforeShutdownDuration);
+  aviationTimerController.idleBeforeShutdown(idleBeforeShutdownDuration);
 }
 
 void AviationTimer::newFlight() {
@@ -216,7 +231,7 @@ void AviationTimer::newFlight() {
 
   TimerDone();
 
-  previousIFRTime = std::chrono::nanoseconds(0);
+  aviationTimerController.newFlight();
 }
 
 void AviationTimer::TimerDone() {
@@ -224,14 +239,14 @@ void AviationTimer::TimerDone() {
 }
 
 void AviationTimer::Refresh() {
-  if (aviationTimerController.IsRunning()) {
-    const hh_mm_ss timesep(aviationTimerController.GetTimeRemaining());
+  if (aviationTimerController.IsTimerRunning()) {
+    const hh_mm_ss timesep(aviationTimerController.GetTimerTimeRemaining());
     lv_label_set_text_fmt(txtShowTimer, "%02d:%02d", timesep.hours() * 60 + timesep.minutes(), timesep.seconds());
   }
 }
 
 void AviationTimer::flightRulesBtnEventHandler() {
-  switch (currentFlightRules) {
+  switch (aviationTimerController.getFlightRules()) {
   case FlightRules::VFR:
     StartIFR();
     break;
@@ -243,9 +258,8 @@ void AviationTimer::flightRulesBtnEventHandler() {
 
 void AviationTimer::flightStateBtnEventHandler() {
   using enum FlightState;
-  switch (currentFlightState) {
-  case off:
-    newFlight();
+  switch (aviationTimerController.getFlightState()) {
+  case beforeStartup:
     if (idleAfterStartupDuration > std::chrono::seconds::zero()) {
       AviationTimer::idleAfterStartup();
     }
@@ -275,6 +289,9 @@ void AviationTimer::flightStateBtnEventHandler() {
     break;
   case idleBeforeShutdown:
     AviationTimer::shutdown();
+    break;
+  case afterShutdown:
+    newFlight();
     break;
   }
 }

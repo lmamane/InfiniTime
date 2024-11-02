@@ -12,13 +12,15 @@ namespace Pinetime {
       Timer(void* timerData, TimerCallbackFunction_t timerCallbackFunction, const char * const timerName);
 
     public:
+      typedef std::chrono::milliseconds duration;
+
       Timer(void* timerData, TimerCallbackFunction_t timerCallbackFunction);
 
-      void StartTimer(std::chrono::milliseconds duration);
+      void StartTimer(duration duration);
 
       void StopTimer();
 
-      std::chrono::milliseconds GetTimeRemaining();
+      duration GetTimeRemaining();
 
       bool IsRunning();
 

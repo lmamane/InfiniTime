@@ -1,18 +1,4 @@
- * Upgrade font awesome to v6 and then:
-   * use plane-up symbol for app starter menu
-   * for mode button, use
-     * at rest / block on: plane-lock? plane-circle-xmark?
-     * taxying for departure: truck-plane? plane-circle-check?
-     * take-off: plane-departure
-     * flying: plane
-     * landing: plane-arrival
-     * taxying after landing: truck-plane? plane-circle-check?
-     Have to decide if I show _current_ situation or _new_ situation
-     after button will be pressed.
- * make
-   * VFR eye icon 0xf06e  (or maybe sun 0xf185  - maybe already there for weather)
-   * IFR cloud 0xf0c2  (maybe alredy there for weather)
- * IFR hold timers
+ * IFR hold timers; icon 0xf021  (or 0xf2f1 if it is already there to save size)
  * landing counter (that's why I wanted the mode button to be one-third width...)
 
 We could save a few bytes by storing:

@@ -32,19 +32,19 @@ namespace Pinetime {
 	using duration = Pinetime::Controllers::AviationTimer::duration;
 	using FlightRules = Pinetime::Controllers::AviationTimer::FlightRules;
 	using FlightState = Pinetime::Controllers::AviationTimer::FlightState;
-	static constexpr const char * const offLabelStr = Screens::Symbols::planeCircleXMark;
+	static constexpr const char * const offLabelStr = Symbols::planeCircleXMark;
 	static constexpr const char * const idleAfterStartupLabelStr = HOURGLASS_SYMBOL PLANEDEPARTURE_SYMBOL;
 	static constexpr const char * const blocksOffLabelStr = PLANEDEPARTURE_SYMBOL;
-	static constexpr const char * const departedLabelStr = Screens::Symbols::plane;
-	static constexpr const char * const landedLabelStr = Screens::Symbols::planeArrival;
-	static constexpr const char * const blocksOnLabelStr = Screens::Symbols::planeLock;
+	static constexpr const char * const departedLabelStr = Symbols::plane;
+	static constexpr const char * const landedLabelStr = Symbols::planeArrival;
+	static constexpr const char * const blocksOnLabelStr = Symbols::planeLock;
 	static constexpr const char * const idleBeforeShutdownLabelStr = HOURGLASS_SYMBOL PLANECIRCLEXMARK_SYMBOL;
 	// TOOD: make these configurable
 	static constexpr auto idleAfterStartupDuration   = std::chrono::seconds(60);
 	static constexpr auto idleBeforeShutdownDuration = std::chrono::seconds(120);
 	// END TODO
-	static constexpr const char * const VFRLabelStr = Screens::Symbols::eye;
-	static constexpr const char * const IFRLabelStr = Screens::Symbols::cloud;
+	static constexpr const char * const VFRLabelStr = Symbols::eye;
+	static constexpr const char * const IFRLabelStr = Symbols::cloud;
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
 	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration;
 	lv_obj_t *txtShowTimer, *txtIFRTime;

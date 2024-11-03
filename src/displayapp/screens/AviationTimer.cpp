@@ -116,14 +116,14 @@ AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
   lv_label_set_long_mode(txtShowTimer, LV_LABEL_LONG_BREAK);
   lv_label_set_align(txtShowTimer, LV_LABEL_ALIGN_CENTER);
   lv_obj_set_width(txtShowTimer, LV_HOR_RES_MAX);
-  lv_obj_align(txtShowTimer, txtBlockDuration, LV_ALIGN_OUT_BOTTOM_LEFT, 0, lv_obj_get_height(txtShowTimer)/2);
+  lv_obj_align(txtShowTimer, txtBlockDuration, LV_ALIGN_OUT_BOTTOM_LEFT, 0, lv_obj_get_height(txtShowTimer)/3);
 
   txtLandingCounter = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtLandingCounter, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
   lv_label_set_long_mode(txtLandingCounter, LV_LABEL_LONG_BREAK);
   lv_label_set_align(txtLandingCounter, LV_LABEL_ALIGN_LEFT);
   lv_obj_set_width(txtLandingCounter, LV_HOR_RES_MAX);
-  lv_obj_align(txtLandingCounter, btnFlightRules, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
+  lv_obj_align(txtLandingCounter, txtIFRTime, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
 
   Redraw();
 

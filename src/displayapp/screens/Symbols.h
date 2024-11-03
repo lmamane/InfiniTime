@@ -49,7 +49,8 @@ namespace Pinetime {
         static constexpr const char* planeLock = "\xEE\x95\x98";
 #define PLANEDEPARTURE_SYMBOL "\xEF\x96\xB0"
         static constexpr const char* planeDeparture = PLANEDEPARTURE_SYMBOL;
-        static constexpr const char* planeArrival = "\xEF\x96\xAF";
+#define PLANEARRIVAL_SYMBOL "\xEF\x96\xAF"
+        static constexpr const char* planeArrival = PLANEARRIVAL_SYMBOL;
 
         // fontawesome_weathericons.c
         // static constexpr const char* sun = "\xEF\x86\x85";

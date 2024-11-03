@@ -22,6 +22,13 @@ namespace {
     }
   }
 
+  void tng_event_handler(lv_obj_t* obj, lv_event_t event) {
+    auto* screen = static_cast<AviationTimer*>(obj->user_data);
+    if (event == LV_EVENT_CLICKED) {
+      screen->TnGBtnEventHandler();
+    }
+  }
+
   template <typename clock, typename t_precision, typename r_precision>
   std::string fmt_hhmmpd(const time_point<clock, r_precision> ref,
                          const time_point<clock, t_precision> tp) {
@@ -52,6 +59,14 @@ AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
   lv_obj_set_size(btnFlightState, btnWidth, btnHeight);
   lv_obj_align(btnFlightState, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
   txtFlightState = lv_label_create(btnFlightState, nullptr);
+
+  btnTnG = lv_btn_create(lv_scr_act(), nullptr);
+  btnTnG->user_data = this;
+  lv_obj_set_event_cb(btnTnG, tng_event_handler);
+  lv_obj_set_size(btnTnG, btnWidth, btnHeight);
+  lv_obj_align(btnTnG, lv_scr_act(), LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+  txtTnG = lv_label_create(btnTnG, nullptr);
+  lv_label_set_text_static(txtTnG, PLANEARRIVAL_SYMBOL PLANEDEPARTURE_SYMBOL);
 
   txtIFRTime = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_color(txtIFRTime, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
@@ -102,6 +117,13 @@ AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
   lv_label_set_align(txtShowTimer, LV_LABEL_ALIGN_CENTER);
   lv_obj_set_width(txtShowTimer, LV_HOR_RES_MAX);
   lv_obj_align(txtShowTimer, txtBlockDuration, LV_ALIGN_OUT_BOTTOM_LEFT, 0, lv_obj_get_height(txtShowTimer)/2);
+
+  txtLandingCounter = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_set_style_local_text_color(txtLandingCounter, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, Colors::lightGray);
+  lv_label_set_long_mode(txtLandingCounter, LV_LABEL_LONG_BREAK);
+  lv_label_set_align(txtLandingCounter, LV_LABEL_ALIGN_LEFT);
+  lv_obj_set_width(txtLandingCounter, LV_HOR_RES_MAX);
+  lv_obj_align(txtLandingCounter, btnFlightRules, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
 
   Redraw();
 
@@ -193,6 +215,7 @@ void AviationTimer::land() {
   lv_label_set_text_static(txtFlightState, landedLabelStr);
   aviationTimerController.land(dateTimeController.UTCDateTime());
   showAirTime();
+  lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
 }
 
 void AviationTimer::showTakeoffTime() {
@@ -243,6 +266,11 @@ void AviationTimer::Refresh() {
     const hh_mm_ss timesep(aviationTimerController.GetTimerTimeRemaining());
     lv_label_set_text_fmt(txtShowTimer, "%02d:%02d", timesep.hours() * 60 + timesep.minutes(), timesep.seconds());
   }
+}
+
+void AviationTimer::TnGBtnEventHandler() {
+  aviationTimerController.touchAndGo();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
 }
 
 void AviationTimer::flightRulesBtnEventHandler() {
@@ -305,6 +333,7 @@ void AviationTimer::Redraw() {
   lv_label_set_text_static(txtAirTime, "");
   lv_label_set_text_static(txtBlockDuration, "");
   lv_label_set_text_static(txtAirDuration, "");
+  lv_label_set_text_static(txtLandingCounter, "");
   TimerDone();
 
   switch (aviationTimerController.getFlightRules()) {
@@ -334,26 +363,31 @@ void AviationTimer::Redraw() {
     lv_label_set_text_static(txtFlightState, departedLabelStr);
     showBlocksOffTime();
     showTakeoffTime();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
   case landed:
     lv_label_set_text_static(txtFlightState, landedLabelStr);
     showBlocksOffTime();
     showAirTime();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
   case blocksOn:
     lv_label_set_text_static(txtFlightState, blocksOnLabelStr);
     showBlockDuration();
     showAirTime();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
   case idleBeforeShutdown:
     lv_label_set_text_static(txtFlightState, idleBeforeShutdownLabelStr);
     showBlockDuration();
     showAirTime();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
   case afterShutdown:
     lv_label_set_text_static(txtFlightState, offLabelStr);
     showBlockDuration();
     showAirTime();
+    lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
   }
 }

@@ -23,6 +23,7 @@ namespace Pinetime {
         void Refresh() override;
         void TimerDone();
 
+	void TnGBtnEventHandler();
 	void flightRulesBtnEventHandler();
 	void flightStateBtnEventHandler();
 
@@ -47,6 +48,7 @@ namespace Pinetime {
 	lv_obj_t *btnFlightState, *txtFlightState, *btnFlightRules, *txtFlightRules;
 	lv_obj_t *txtStartDate, *txtBlockTime, *txtAirTime, *txtBlockDuration, *txtAirDuration;
 	lv_obj_t *txtShowTimer, *txtIFRTime;
+	lv_obj_t *btnTnG, *txtTnG, *txtLandingCounter;
 	lv_task_t* taskRefresh;
 	static constexpr const char * const IFRStartFmt = "IFR since %s";
 	static constexpr const char * const IFREndFmt = "IFR e%s %dh%02dm%02d";
@@ -55,6 +57,7 @@ namespace Pinetime {
 	static constexpr const char * const AirTimeFmt = "A %s - %s";
 	static constexpr const char * const BlockDurationFmt = "B%2dh%02dm%02d";
 	static constexpr const char * const AirDurationFmt = "A%2dh%02dm%02d";
+	static constexpr const char * const LandingCounterFmt = "Landings: %d";
 
 	void StartIFR();
 	void StopIFR();

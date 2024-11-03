@@ -126,6 +126,7 @@ namespace Pinetime {
 	BlocksOnTime = time_point();
 	IFRStartStopTime = time_point();
 	currentFlightState = FlightState::beforeStartup;
+	landingCount = 0;
       }
 
       void blocksOff(const time_point time) {
@@ -156,6 +157,7 @@ namespace Pinetime {
 	assert(currentFlightState == FlightState::departed);
 	currentFlightState = FlightState::landed;
 	LandingTime = time;
+	++landingCount;
       }
 
       void shutdown() {
@@ -201,9 +203,18 @@ namespace Pinetime {
 	  currentFlightState >= FlightState::blocksOn;
       }
 
+      int getLandingCount() {
+	return landingCount;
+      }
+
+      void touchAndGo () {
+	++landingCount;
+      }
+
     protected:
       FlightState currentFlightState = FlightState::beforeStartup;
       FlightRules currentFlightRules = FlightRules::VFR;
+      int landingCount = 0;
 
       duration previousIFRTime = duration(0);
 

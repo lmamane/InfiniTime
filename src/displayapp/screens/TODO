@@ -1,5 +1,4 @@
  * IFR hold timers; icon 0xf021  (or 0xf2f1 if it is already there to save size)
- * landing counter (that's why I wanted the mode button to be one-third width...)
 
 We could save a few bytes by storing:
  * previousIFRTime in seconds as int32 or even int16 (already > 18h)

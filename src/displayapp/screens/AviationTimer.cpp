@@ -35,9 +35,31 @@ namespace {
     const auto ref_days = floor<days>(ref);
     const auto tp_days = floor<days>(tp);
     const hh_mm_ss time{tp - tp_days};
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
     return std::format("{:%R}{:+d}", tp, (tp_days - ref_days).count());
+#else
+    constexpr size_t bufsize = 15;
+    char buf[bufsize];
+    snprintf(buf, bufsize, "%s%02lld:%02lld+%lld", time.is_negative() ? "-" : "", time.hours().count(), time.minutes().count(), (tp_days - ref_days).count());
+    buf[bufsize - 1] = '\0';
+    return std::string(buf);
+#endif
   }
 
+  template <typename clock, typename precision>
+  std::string fmt_yyyymmdd(const time_point<clock, precision> tp) {
+#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
+    return std::format("{:%F}", tp);
+#else
+    const auto tpd(floor<days>(tp));
+    const year_month_day ymd(tpd);
+    constexpr size_t bufsize = 15;
+    char buf[bufsize];
+    snprintf(buf, bufsize, "%04d-%02u-%02u", int(ymd.year()), unsigned(ymd.month()), unsigned(ymd.day()));
+    buf[bufsize - 1] = '\0';
+    return std::string(buf);
+#endif
+  }
 }
 
 AviationTimer::AviationTimer(Controllers::DateTime& dateTimeController,
@@ -181,7 +203,7 @@ void AviationTimer::blocksOn() {
 
 void AviationTimer::showBlocksOffTime() {
   const time_point BlocksOffTime(aviationTimerController.getBlocksOffTime());
-  lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
+  lv_label_set_text_fmt(txtStartDate, FlightDateFmt, fmt_yyyymmdd(BlocksOffTime).c_str());
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt, fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(), "");
   if (aviationTimerController.isIFRInProgress()) {
     showIFRStart();
@@ -192,7 +214,7 @@ void AviationTimer::showBlockDuration() {
   const time_point BlocksOffTime(aviationTimerController.getBlocksOffTime());
   const time_point BlocksOnTime (aviationTimerController.getBlocksOnTime ());
   if(lv_label_get_text(txtStartDate) == "") {
-    lv_label_set_text_fmt(txtStartDate, FlightDateFmt, std::format("{:%F}", BlocksOffTime).c_str());
+    lv_label_set_text_fmt(txtStartDate, FlightDateFmt, fmt_yyyymmdd(BlocksOffTime).c_str());
   }
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt,
 			fmt_hhmmpd(BlocksOffTime, BlocksOffTime).c_str(),

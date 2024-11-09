@@ -215,7 +215,7 @@ void AviationTimer::showBlocksOffTime() {
 void AviationTimer::showBlockDuration() {
   const time_point BlocksOffTime(aviationTimerController.getBlocksOffTime());
   const time_point BlocksOnTime (aviationTimerController.getBlocksOnTime ());
-  if(lv_label_get_text(txtStartDate) == "") {
+  if(lv_label_get_text(txtStartDate)[0] == '\0') {
     lv_label_set_text_fmt(txtStartDate, FlightDateFmt, fmt_yyyymmdd(BlocksOffTime).c_str());
   }
   lv_label_set_text_fmt(txtBlockTime, BlockTimeFmt,

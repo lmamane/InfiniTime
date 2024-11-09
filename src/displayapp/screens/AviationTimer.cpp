@@ -3,6 +3,8 @@
 #include "displayapp/screens/Symbols.h"
 #include "displayapp/InfiniTimeTheme.h"
 
+#include <compat/chrono>
+
 using namespace Pinetime::Applications::Screens;
 
 namespace {
@@ -307,9 +309,8 @@ void AviationTimer::flightRulesBtnEventHandler() {
 }
 
 void AviationTimer::flightStateBtnEventHandler() {
-  using enum FlightState;
   switch (aviationTimerController.getFlightState()) {
-  case beforeStartup:
+  case FlightState::beforeStartup:
     if (idleAfterStartupDuration > std::chrono::seconds::zero()) {
       AviationTimer::idleAfterStartup();
     }
@@ -317,19 +318,19 @@ void AviationTimer::flightStateBtnEventHandler() {
       AviationTimer::blocksOff();
     }
     break;
-  case idleAfterStartup:
+  case FlightState::idleAfterStartup:
     AviationTimer::blocksOff();
     break;
-  case blocksOff:
+  case FlightState::blocksOff:
     AviationTimer::takeoff();
     break;
-  case departed:
+  case FlightState::departed:
     AviationTimer::land();
     break;
-  case landed:
+  case FlightState::landed:
     AviationTimer::blocksOn();
     break;
-  case blocksOn:
+  case FlightState::blocksOn:
     if (idleBeforeShutdownDuration > std::chrono::seconds::zero()) {
       AviationTimer::idleBeforeShutdown();
     }
@@ -337,18 +338,16 @@ void AviationTimer::flightStateBtnEventHandler() {
       AviationTimer::shutdown();
     }
     break;
-  case idleBeforeShutdown:
+  case FlightState::idleBeforeShutdown:
     AviationTimer::shutdown();
     break;
-  case afterShutdown:
+  case FlightState::afterShutdown:
     newFlight();
     break;
   }
 }
 
 void AviationTimer::Redraw() {
-  using enum FlightState;
-
   lv_label_set_text_static(txtIFRTime, "");
   lv_label_set_text_static(txtStartDate, "");
   lv_label_set_text_static(txtBlockTime, "");
@@ -371,41 +370,41 @@ void AviationTimer::Redraw() {
   }
 
   switch (aviationTimerController.getFlightState()) {
-  case beforeStartup:
+  case FlightState::beforeStartup:
     lv_label_set_text_static(txtFlightState, offLabelStr);
     break;
-  case idleAfterStartup:
+  case FlightState::idleAfterStartup:
     lv_label_set_text_static(txtFlightState, idleAfterStartupLabelStr);
     break;
-  case blocksOff:
+  case FlightState::blocksOff:
     lv_label_set_text_static(txtFlightState, blocksOffLabelStr);
     showBlocksOffTime();
     break;
-  case departed:
+  case FlightState::departed:
     lv_label_set_text_static(txtFlightState, departedLabelStr);
     showBlocksOffTime();
     showTakeoffTime();
     lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
-  case landed:
+  case FlightState::landed:
     lv_label_set_text_static(txtFlightState, landedLabelStr);
     showBlocksOffTime();
     showAirTime();
     lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
-  case blocksOn:
+  case FlightState::blocksOn:
     lv_label_set_text_static(txtFlightState, blocksOnLabelStr);
     showBlockDuration();
     showAirTime();
     lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
-  case idleBeforeShutdown:
+  case FlightState::idleBeforeShutdown:
     lv_label_set_text_static(txtFlightState, idleBeforeShutdownLabelStr);
     showBlockDuration();
     showAirTime();
     lv_label_set_text_fmt(txtLandingCounter, LandingCounterFmt, aviationTimerController.getLandingCount());
     break;
-  case afterShutdown:
+  case FlightState::afterShutdown:
     lv_label_set_text_static(txtFlightState, offLabelStr);
     showBlockDuration();
     showAirTime();

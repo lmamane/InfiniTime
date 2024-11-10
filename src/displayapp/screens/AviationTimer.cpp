@@ -42,9 +42,12 @@ namespace {
 #else
     constexpr size_t bufsize = 15;
     char buf[bufsize];
-    snprintf(buf, bufsize, "%s%02lld:%02lld+%lld", time.is_negative() ? "-" : "", time.hours().count(), time.minutes().count(), (tp_days - ref_days).count());
-    buf[bufsize - 1] = '\0';
-    return std::string(buf);
+    int nc = snprintf(buf, bufsize, "%s%02d:%02d+%d",
+		      (time.is_negative() ? "-" : ""),
+		      static_cast<int>(time.hours().count()),
+		      static_cast<int>(time.minutes().count()),
+		      static_cast<int>((tp_days - ref_days).count()));
+    return std::string(buf, nc);
 #endif
   }
 
@@ -57,9 +60,8 @@ namespace {
     const year_month_day ymd(tpd);
     constexpr size_t bufsize = 15;
     char buf[bufsize];
-    snprintf(buf, bufsize, "%04d-%02u-%02u", int(ymd.year()), unsigned(ymd.month()), unsigned(ymd.day()));
-    buf[bufsize - 1] = '\0';
-    return std::string(buf);
+    int nc = snprintf(buf, bufsize, "%04d-%02u-%02u", int(ymd.year()), unsigned(ymd.month()), unsigned(ymd.day()));
+    return std::string(buf, nc);
 #endif
   }
 }
@@ -183,12 +185,12 @@ void AviationTimer::showIFRStart() {
 void AviationTimer::showIFRDuration() {
     const hh_mm_ss pITSep {round<seconds>(aviationTimerController.getIFRDuration())};
     lv_label_set_text_fmt(txtIFRTime,
-			  IFREndFmt,
-			  fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
-				     aviationTimerController.getIFRStopTime()).c_str(),
-			  pITSep.hours(),
-			  pITSep.minutes(),
-			  pITSep.seconds());
+                          IFREndFmt,
+                          fmt_hhmmpd(aviationTimerController.getBlocksOffTime(),
+                                     aviationTimerController.getIFRStopTime()).c_str(),
+                          static_cast<int>(pITSep.hours().count()),
+                          static_cast<int>(pITSep.minutes().count()),
+                          static_cast<int>(pITSep.seconds().count()));
 }
 
 void AviationTimer::blocksOff() {
@@ -223,7 +225,9 @@ void AviationTimer::showBlockDuration() {
 			fmt_hhmmpd(BlocksOffTime, BlocksOnTime ).c_str());
   const hh_mm_ss blocktime(round<seconds>(BlocksOnTime - BlocksOffTime));
   lv_label_set_text_fmt(txtBlockDuration, BlockDurationFmt,
-			blocktime.hours(), blocktime.minutes(), blocktime.seconds());
+			static_cast<int>(blocktime.hours().count()),
+			static_cast<int>(blocktime.minutes().count()),
+			static_cast<int>(blocktime.seconds().count()));
   if (aviationTimerController.getFlightRules() == FlightRules::IFR) {
     showIFRDuration();
   }
@@ -258,7 +262,9 @@ void AviationTimer::showAirTime() {
 			fmt_hhmmpd(BlocksOffTime, LandingTime).c_str());
   const hh_mm_ss airtime(round<seconds>(LandingTime - TakeoffTime));
   lv_label_set_text_fmt(txtAirDuration, AirDurationFmt,
-			airtime.hours(), airtime.minutes(), airtime.seconds());
+			static_cast<int>(airtime.hours().count()),
+			static_cast<int>(airtime.minutes().count()),
+			static_cast<int>(airtime.seconds().count()));
 }
 
 void AviationTimer::shutdown() {
@@ -288,7 +294,9 @@ void AviationTimer::TimerDone() {
 void AviationTimer::Refresh() {
   if (aviationTimerController.IsTimerRunning()) {
     const hh_mm_ss timesep(aviationTimerController.GetTimerTimeRemaining());
-    lv_label_set_text_fmt(txtShowTimer, "%02d:%02d", timesep.hours() * 60 + timesep.minutes(), timesep.seconds());
+    lv_label_set_text_fmt(txtShowTimer, "%02d:%02d",
+			  static_cast<int>(timesep.hours().count() * 60 + timesep.minutes().count()),
+			  static_cast<int>(timesep.seconds().count()));
   }
 }
 
